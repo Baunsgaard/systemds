@@ -42,7 +42,6 @@ import org.apache.hadoop.mapred.TextInputFormat;
 import org.apache.sysds.conf.ConfigurationManager;
 import org.apache.sysds.hops.OptimizerUtils;
 import org.apache.sysds.runtime.DMLRuntimeException;
-import org.apache.sysds.runtime.data.DenseBlock;
 import org.apache.sysds.runtime.io.IOUtilFunctions.CountRowsTask;
 import org.apache.sysds.runtime.matrix.data.MatrixBlock;
 import org.apache.sysds.runtime.util.CommonThreadPool;
@@ -285,6 +284,9 @@ public class ReaderTextCSVParallel extends MatrixReader
 		private Exception _exception = null;
 		private long _nnz;
 		private HashSet<String> _naStrings;
+
+		private int row = 0;
+		private int col = 0;
 		
 		public CSVReadTask(InputSplit split, SplitOffsetInfos offsets,
 				TextInputFormat informat, JobConf job, MatrixBlock dest,
@@ -325,10 +327,6 @@ public class ReaderTextCSVParallel extends MatrixReader
 		public Object call() 
 			throws Exception 
 		{
-			int row = 0;
-			int col = 0;
-			double cellValue = 0;
-			long lnnz = 0;
 			
 			try 
 			{
@@ -341,80 +339,21 @@ public class ReaderTextCSVParallel extends MatrixReader
 					reader.next(key, value);
 				}
 
-				boolean noFillEmpty = false;
 				row = _splitoffsets.getOffsetPerSplit(_splitCount);
 
 				try {
-					if (_sparse) // SPARSE<-value
-					{
-						while (reader.next(key, value)) // foreach line
-						{
-							String cellStr = value.toString().trim();
-							String[] parts = IOUtilFunctions.split(cellStr, _delim);
-							col = 0;
-
-							for (String part : parts) // foreach cell
-							{
-								part = part.trim();
-								if (part.isEmpty()) {
-									noFillEmpty |= !_fill;
-									cellValue = _fillValue;
-								} 
-								else {
-									cellValue = UtilFunctions.parseToDouble(part,_naStrings);
-								}
-
-								if( cellValue != 0 ) {
-									_dest.appendValue(row, col, cellValue);
-									lnnz++;
-								}
-								col++;
-							}
-
-							// sanity checks (number of columns, fill values)
-							IOUtilFunctions.checkAndRaiseErrorCSVEmptyField(cellStr, _fill, noFillEmpty);
-							IOUtilFunctions.checkAndRaiseErrorCSVNumColumns(_split.toString(), cellStr, parts, _clen);
-							
-							row++;
-						}
-					} 
-					else // DENSE<-value
-					{
-						DenseBlock a = _dest.getDenseBlock();
-						while (reader.next(key, value)) { // foreach line
-							String cellStr = value.toString().trim();
-							String[] parts = IOUtilFunctions.split(cellStr, _delim);
-							col = 0;
-							for (String part : parts) { // foreach cell
-								part = part.trim();
-								if (part.isEmpty()) {
-									noFillEmpty |= !_fill;
-									cellValue = _fillValue;
-								} 
-								else {
-									cellValue = UtilFunctions.parseToDouble(part,_naStrings);
-								}
-								if( cellValue != 0 ) {
-									a.set(row, col, cellValue);
-									lnnz++;
-								}
-								col++;
-							}
-
-							// sanity checks (number of columns, fill values)
-							IOUtilFunctions.checkAndRaiseErrorCSVEmptyField(cellStr, _fill, noFillEmpty);
-							IOUtilFunctions.checkAndRaiseErrorCSVNumColumns(_split.toString(), cellStr, parts, _clen);
-							
-							row++;
-						}
-					}
-
+					if(_sparse)
+						parseSparse(reader, key, value);
+					else
+						parseDense(reader, key, value);
+						
 					// sanity checks (number of rows)
-					if (row != (_splitoffsets.getOffsetPerSplit(_splitCount) + _splitoffsets.getLenghtPerSplit(_splitCount)) ) 
-					{
-						throw new IOException("Incorrect number of rows ("+ row+ ") found in delimited file ("
-										+ (_splitoffsets.getOffsetPerSplit(_splitCount) 
-										+ _splitoffsets.getLenghtPerSplit(_splitCount))+ "): " + value);
+					if(row != (_splitoffsets.getOffsetPerSplit(_splitCount) +
+						_splitoffsets.getLenghtPerSplit(_splitCount))) {
+						throw new IOException("Incorrect number of rows (" + row + ") found in delimited file ("
+							+ (_splitoffsets.getOffsetPerSplit(_splitCount) +
+								_splitoffsets.getLenghtPerSplit(_splitCount))
+							+ "): " + value);
 					}
 				} 
 				finally {
@@ -437,11 +376,161 @@ public class ReaderTextCSVParallel extends MatrixReader
 					throw new IOException(errMsg, _exception);
 				}
 			}
-
-			//post processing
-			_nnz = lnnz;
 			
 			return null;
+		}
+
+
+		private void parseSparse(RecordReader<LongWritable, Text> reader, LongWritable key, Text value)
+			throws IOException {
+			if((_naStrings == null || _naStrings.isEmpty() || (_naStrings.size()== 1 && _naStrings.contains("")))) 
+				parseSparseNoNanCheck(reader, key, value);
+			else 
+				parseSparseNanCheck(reader, key, value);
+		}
+
+		private void parseSparseNoNanCheck(RecordReader<LongWritable, Text> reader, LongWritable key, Text value)
+		throws IOException {
+			double cellValue = 0;
+			boolean noFillEmpty = false;
+			while(reader.next(key, value)) // foreach line
+			{
+				String cellStr = value.toString().trim();
+				String[] parts = IOUtilFunctions.split(cellStr, _delim);
+				col = 0;
+
+				for(String part : parts) // foreach cell
+				{
+					part = part.trim();
+					if(part.isEmpty()) {
+						noFillEmpty |= !_fill;
+						cellValue = _fillValue;
+					}
+					else {
+						cellValue = UtilFunctions.parseToDouble(part, _naStrings);
+					}
+
+					if(cellValue != 0) {
+						_dest.appendValue(row, col, cellValue);
+						_nnz++;
+					}
+					col++;
+				}
+
+				// sanity checks (number of columns, fill values)
+				IOUtilFunctions.checkAndRaiseErrorCSVEmptyField(cellStr, _fill, noFillEmpty);
+				IOUtilFunctions.checkAndRaiseErrorCSVNumColumns(_split.toString(), cellStr, parts, _clen);
+
+				row++;
+			}
+		}
+
+		private void parseSparseNanCheck(RecordReader<LongWritable, Text> reader, LongWritable key, Text value)
+		throws IOException {
+			boolean noFillEmpty = false;
+			double cellValue = 0;
+			while(reader.next(key, value)) // foreach line
+			{
+				String cellStr = value.toString().trim();
+				String[] parts = IOUtilFunctions.split(cellStr, _delim);
+				col = 0;
+
+				for(String part : parts) // foreach cell
+				{
+					part = part.trim();
+					if(part.isEmpty()) {
+						noFillEmpty |= !_fill;
+						cellValue = _fillValue;
+					}
+					else {
+						cellValue = UtilFunctions.parseToDouble(part, _naStrings);
+					}
+
+					if(cellValue != 0) {
+						_dest.appendValue(row, col, cellValue);
+						_nnz++;
+					}
+					col++;
+				}
+
+				// sanity checks (number of columns, fill values)
+				IOUtilFunctions.checkAndRaiseErrorCSVEmptyField(cellStr, _fill, noFillEmpty);
+				IOUtilFunctions.checkAndRaiseErrorCSVNumColumns(_split.toString(), cellStr, parts, _clen);
+
+				row++;
+			}
+		}
+
+		private void parseDense(RecordReader<LongWritable, Text> reader, LongWritable key, Text value)
+			throws IOException {
+			if((_naStrings == null || _naStrings.isEmpty() || (_naStrings.size()== 1 && _naStrings.contains("")))) 
+				parseDenseNoNanCheck(reader, key, value);
+			else 
+				parseDenseNanCheck(reader, key, value);
+			
+		}
+
+		private void parseDenseNoNanCheck(RecordReader<LongWritable, Text> reader, LongWritable key, Text value)
+			throws IOException {
+			double[] a = _dest.getDenseBlockValues();
+			double cellValue = 0;
+
+			boolean noFillEmpty = false;
+			int index = row * (int)_clen;
+			while(reader.next(key, value)) { // foreach line
+				String cellStr = value.toString().trim();
+				String[] parts = IOUtilFunctions.split(cellStr, _delim);
+				for(String part : parts) { // foreach cell
+					part = part.trim();
+					if(part.isEmpty()) {
+						noFillEmpty |= !_fill;
+						cellValue = _fillValue;
+					}
+					else {
+						cellValue = Double.parseDouble(part);
+					}
+					if(cellValue != 0) {
+						a[index] = cellValue;
+						_nnz++;
+					}
+					index++;
+				}
+				// sanity checks (number of columns, fill values)
+				IOUtilFunctions.checkAndRaiseErrorCSVEmptyField(cellStr, _fill, noFillEmpty);
+				IOUtilFunctions.checkAndRaiseErrorCSVNumColumns(_split.toString(), cellStr, parts, _clen);
+				row++;
+			}
+		}
+
+		private void parseDenseNanCheck(RecordReader<LongWritable, Text> reader, LongWritable key, Text value)
+			throws IOException {
+			double[] a = _dest.getDenseBlockValues();
+			double cellValue = 0;
+			boolean noFillEmpty = false;
+			int index = row * (int)_clen;
+			while(reader.next(key, value)) { // foreach line
+				String cellStr = value.toString().trim();
+				String[] parts = IOUtilFunctions.split(cellStr, _delim);
+				for(String part : parts) { // foreach cell
+					part = part.trim();
+					if(part.isEmpty()) {
+						noFillEmpty |= !_fill;
+						cellValue = _fillValue;
+					}
+					else {
+						cellValue = Double.parseDouble(part);
+					}
+					if(cellValue != 0) {
+						a[index] = cellValue;
+						_nnz++;
+					}
+					index++;
+				}
+				// sanity checks (number of columns, fill values)
+				IOUtilFunctions.checkAndRaiseErrorCSVEmptyField(cellStr, _fill, noFillEmpty);
+				IOUtilFunctions.checkAndRaiseErrorCSVNumColumns(_split.toString(), cellStr, parts, _clen);
+				row++;
+			}
 		}
 	}
 }

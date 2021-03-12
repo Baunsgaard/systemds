@@ -60,9 +60,11 @@ public class FileFormatPropertiesCSV extends FileFormatProperties implements Ser
 		this.fill = fill;
 		this.fillValue = fillValue;
 
-		this.naStrings = new HashSet<>();
-		for(String s: naStrings.split(DataExpression.DELIM_NA_STRING_SEP)){
-			this.naStrings.add(s);
+		String[] naS = naStrings.split(DataExpression.DELIM_NA_STRING_SEP);
+		if(naS.length > 0 ){
+			this.naStrings = new HashSet<>();
+			for(String s: naS)
+				this.naStrings.add(s);
 		}
 		if(LOG.isDebugEnabled())
 			LOG.debug("FileFormatPropertiesCSV full settings: " + this.toString());
