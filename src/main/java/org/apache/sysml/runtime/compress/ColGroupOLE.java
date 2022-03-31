@@ -101,12 +101,34 @@ public class ColGroupOLE extends ColGroupOffset
 			LOG.warn("OLE group larger than UC dense: "+estimateInMemorySize()+" "+ucSize);
 	}
 
+	public ColGroupOLE(int[] colIndices, int numRows, boolean zeros, double[] values, char[] bitmaps, int[] bitmapOffs, int[] skiplist) {
+		super(colIndices, numRows, zeros, values);
+		_data = bitmaps;
+		_ptr = bitmapOffs;
+		_skiplist = skiplist;
+	}
+	
+
 	public ColGroupOLE(int[] colIndices, int numRows, boolean zeros, double[] values, char[] bitmaps, int[] bitmapOffs) {
 		super(colIndices, numRows, zeros, values);
 		_data = bitmaps;
 		_ptr = bitmapOffs;
+		final int numVals = values.length;
+		if(LOW_LEVEL_OPT && CREATE_SKIPLIST && numRows > 2 * BitmapEncoder.BITMAP_BLOCK_SZ) {
+			int blksz = BitmapEncoder.BITMAP_BLOCK_SZ;
+			_skiplist = new int[numVals];
+			int rl = (getNumRows() / 2 / blksz) * blksz;
+			for(int k = 0; k < numVals; k++) {
+				int boff = _ptr[k];
+				int blen = len(k);
+				int bix = 0;
+				for(int i = 0; i < rl && bix < blen; i += blksz) {
+					bix += _data[boff + bix] + 1;
+				}
+				_skiplist[k] = bix;
+			}
+		}
 	}
-	
 
 	@Override
 	public CompressionType getCompType() {
@@ -269,7 +291,7 @@ public class ColGroupOLE extends ColGroupOffset
 		// Note that bitmaps don't change and are shallow-copied
 		if( op.sparseSafe || val0==0 ) {
 			return new ColGroupOLE(_colIndexes, _numRows, _zeros, 
-					applyScalarOp(op), _data, _ptr);
+					applyScalarOp(op), _data, _ptr, _skiplist);
 		}
 		
 		//slow path: sparse-unsafe operations (potentially create new bitmap)
@@ -278,7 +300,7 @@ public class ColGroupOLE extends ColGroupOffset
 		int[] loff = computeOffsets(lind);
 		if( loff.length==0 ) { //empty offset list: go back to fast path
 			return new ColGroupOLE(_colIndexes, _numRows, true,
-					applyScalarOp(op), _data, _ptr);
+					applyScalarOp(op), _data, _ptr, _skiplist);
 		}
 		
 		double[] rvalues = applyScalarOp(op, val0, getNumCols());

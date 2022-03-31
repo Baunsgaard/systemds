@@ -40,7 +40,7 @@ public abstract class ColGroupValue extends ColGroup
 {	
 	private static final long serialVersionUID = 3786247536054353658L;
 		
-	public static boolean LOW_LEVEL_OPT = true;	
+	public static final boolean LOW_LEVEL_OPT = true;	
 	
 	//sorting of values by physical length helps by 10-20%, especially for serial, while
 	//slight performance decrease for parallel incl multi-threaded, hence not applied for
