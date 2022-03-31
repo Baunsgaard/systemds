@@ -113,7 +113,7 @@ public class ColGroupOLE extends ColGroupOffset
 		super(colIndices, numRows, zeros, values);
 		_data = bitmaps;
 		_ptr = bitmapOffs;
-		final int numVals = values.length;
+		final int numVals = getNumValues();
 		if(LOW_LEVEL_OPT && CREATE_SKIPLIST && numRows > 2 * BitmapEncoder.BITMAP_BLOCK_SZ) {
 			int blksz = BitmapEncoder.BITMAP_BLOCK_SZ;
 			_skiplist = new int[numVals];
@@ -302,14 +302,13 @@ public class ColGroupOLE extends ColGroupOffset
 			return new ColGroupOLE(_colIndexes, _numRows, true,
 					applyScalarOp(op), _data, _ptr, _skiplist);
 		}
-		
 		double[] rvalues = applyScalarOp(op, val0, getNumCols());
 		char[] lbitmap = BitmapEncoder.genOffsetBitmap(loff, loff.length);
-		char[] rbitmaps = Arrays.copyOf(_data, _data.length+lbitmap.length);
+		char[] rbitmaps = Arrays.copyOf(_data, _data.length + lbitmap.length);
 		System.arraycopy(lbitmap, 0, rbitmaps, _data.length, lbitmap.length);
 		int[] rbitmapOffs = Arrays.copyOf(_ptr, _ptr.length+1);
 		rbitmapOffs[rbitmapOffs.length-1] = rbitmaps.length;
-		
+
 		return new ColGroupOLE(_colIndexes, _numRows, loff.length<_numRows,
 				rvalues, rbitmaps, rbitmapOffs);
 	}
