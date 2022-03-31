@@ -492,7 +492,7 @@ public class ColGroupRLE extends ColGroupOffset
 		char[] rbitmaps = Arrays.copyOf(_data, _data.length+lbitmap.length);
 		System.arraycopy(lbitmap, 0, rbitmaps, _data.length, lbitmap.length);
 		int[] rbitmapOffs = Arrays.copyOf(_ptr, _ptr.length+1);
-		rbitmapOffs[rbitmapOffs.length-1] = rbitmaps.length; 
+		rbitmapOffs[rbitmapOffs.length-1] = _data.length; 
 		
 		return new ColGroupRLE(_colIndexes, _numRows, loff.length<_numRows,
 				rvalues, rbitmaps, rbitmapOffs);
