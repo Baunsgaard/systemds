@@ -111,18 +111,18 @@ public class CompressedMatrixBlock extends MatrixBlock implements Externalizable
 	public static final boolean INVESTIGATE_ESTIMATES = false;
 	public static boolean ALLOW_DDC_ENCODING = true;
 	public static final boolean ALLOW_SHARED_DDC1_DICTIONARY = true;
-	private static final boolean LDEBUG = true; //local debug flag
-	private static final Level LDEBUG_LEVEL = Level.INFO; //DEBUG/TRACE for details
+	// private static final boolean LDEBUG = true; //local debug flag
+	// private static final Level LDEBUG_LEVEL = Level.INFO; //DEBUG/TRACE for details
 	
 	private static final Log LOG = LogFactory.getLog(CompressedMatrixBlock.class.getName());
 	
-	static{
-		// for internal debugging only
-		if( LDEBUG ) {
-			Logger.getLogger("org.apache.sysml.runtime.compress")
-				.setLevel((Level) LDEBUG_LEVEL);
-		}
-	}
+	// static{
+	// 	// for internal debugging only
+	// 	if( LDEBUG ) {
+	// 		Logger.getLogger("org.apache.sysml.runtime.compress")
+	// 			.setLevel((Level) LDEBUG_LEVEL);
+	// 	}
+	// }
 	
 	protected ArrayList<ColGroup> _colGroups = null;
 	protected CompressionStatistics _stats = null;
