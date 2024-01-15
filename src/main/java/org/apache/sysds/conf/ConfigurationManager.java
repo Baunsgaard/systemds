@@ -24,6 +24,7 @@ import java.util.concurrent.Future;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.sysds.api.DMLScript;
@@ -63,7 +64,8 @@ public class ConfigurationManager{
 
 	//global static initialization
 	static {
-		_rJob = new JobConf();
+
+		_rJob = new JobConf(new Configuration());
 		
 		//initialization after job conf in order to prevent cyclic initialization issues 
 		//ConfigManager -> OptimizerUtils -> InfrastructureAnalyzer -> ConfigManager 
