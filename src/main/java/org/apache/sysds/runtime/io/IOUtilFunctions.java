@@ -120,7 +120,8 @@ public class IOUtilFunctions {
 	public static FileSystem getFileSystem(Path fname, Configuration conf) throws IOException {
 		try {
 			return FileSystem.get(fname.toUri(), conf);
-		} catch(NoClassDefFoundError err) {
+		}
+		catch(NoClassDefFoundError err) {
 			throw new IOException(err.getMessage(), err);
 		}
 	}

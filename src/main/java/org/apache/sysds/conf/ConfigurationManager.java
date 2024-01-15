@@ -24,6 +24,7 @@ import java.util.concurrent.Future;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.sysds.api.DMLScript;
 import org.apache.sysds.conf.CompilerConfig.ConfigType;
@@ -72,6 +73,8 @@ public class ConfigurationManager{
 		final ExecutorService pool = CommonThreadPool.get();
 		loaded = pool.submit(() ->{
 			try{
+				_rJob.addResource(new Path("/HADOOP_HOME/conf/core-site.xml"));
+				_rJob.addResource(new Path("/HADOOP_HOME/conf/hdfs-site.xml"));
 				IOUtilFunctions.getFileSystem(_rJob);
 			}
 			catch(Exception e){
