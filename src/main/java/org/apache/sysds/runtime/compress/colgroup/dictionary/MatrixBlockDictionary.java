@@ -28,6 +28,9 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+
+import jdk.incubator.vector.DoubleVector;
+import jdk.incubator.vector.VectorSpecies;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.sysds.runtime.compress.DMLCompressionException;
 import org.apache.sysds.runtime.compress.colgroup.indexes.ArrayIndex;
@@ -2040,8 +2043,10 @@ public class MatrixBlockDictionary extends ADictionary {
 		}
 	}
 
+	static final VectorSpecies<Double> SPECIES = DoubleVector.SPECIES_PREFERRED;
 	private void preaggValuesFromDenseDictBlockedIKJ(double[] a, double[] b, double[] ret, int bi, int bk, int bj,
 		int bie, int bke, int cz, int az, int ls, int cut, int sOffT, int eOffT) {
+		final int vLen = SPECIES.length();
 		for(int i = bi; i < bie; i++) {
 			final int offI = i * cz;
 			final int offOutT = i * az + bj;
@@ -2052,13 +2057,19 @@ public class MatrixBlockDictionary extends ADictionary {
 				final int cells = eOff - sOff;
 				final double v = a[offI + k];
 				int offOut = offOutT;
-				for(int j = sOff; j < eOff - (cells % 4); j += 4, offOut += 4) {
-					ret[offOut] += v * b[j];
-					ret[offOut + 1] += v * b[j + 1];
-					ret[offOut + 2] += v * b[j + 2];
-					ret[offOut + 3] += v * b[j + 3];
+				var vVec = DoubleVector.broadcast(SPECIES, v);
+				for(int j = sOff; j < eOff - (cells % vLen); j += vLen, offOut += vLen) {
+					var res = DoubleVector.fromArray(SPECIES, ret, offOut);
+					var bVec = DoubleVector.fromArray(SPECIES, b, j);
+					res = vVec.fma(bVec, res);
+					res.intoArray(ret, offOut);
+					// ret[offOut] += v * b[j];
+					// ret[offOut + 1] += v * b[j + 1];
+					// ret[offOut + 2] += v * b[j + 2];
+					// ret[offOut + 3] += v * b[j + 3];
+
 				}
-				for(int j = eOff - (cells % 4); j < eOff; j++, offOut++) {
+				for(int j = eOff - (cells % vLen); j < eOff; j++, offOut++) {
 					ret[offOut] += v * b[j];
 				}
 			}
