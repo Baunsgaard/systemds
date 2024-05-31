@@ -29,6 +29,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.stream.IntStream;
 
+import jdk.incubator.vector.DoubleVector;
+import jdk.incubator.vector.VectorSpecies;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -59,6 +61,7 @@ import org.apache.sysds.runtime.matrix.operators.ReorgOperator;
 import org.apache.sysds.runtime.util.CommonThreadPool;
 import org.apache.sysds.runtime.util.UtilFunctions;
 import org.apache.sysds.utils.NativeHelper;
+
 
 /**
  * MB: Library for matrix multiplications including MM, MV, VV for all
@@ -4146,30 +4149,37 @@ public class LibMatrixMult
 			c[ ci+7 ] += a[ ai+7 ] + bval;
 		}
 	}
+
+	static final VectorSpecies<Double> SPECIES = DoubleVector.SPECIES_PREFERRED;
 	
 	//note: public for use by codegen for consistency
 	public static void vectAdd( double[] a, double[] c, int ai, int ci, final int len )
 	{
-		final int bn = len%8;
+		final int vLen = SPECIES.length();
+		final int bn = len%vLen;
 		
-		//rest, not aligned to 8-blocks
+		//rest, not aligned to vLen-blocks
 		for( int j = 0; j < bn; j++, ai++, ci++)
 			c[ ci ] += a[ ai ];
 		
-		//unrolled 8-block  (for better instruction-level parallelism)
-		for( int j = bn; j < len; j+=8, ai+=8, ci+=8) 
+		//unrolled vLen-block  (for better instruction-level parallelism)
+		for( int j = bn; j < len; j+=vLen, ai+=vLen, ci+=vLen) 
 		{
+			DoubleVector res = DoubleVector.fromArray(SPECIES, c, ci);
+			DoubleVector aVec = DoubleVector.fromArray(SPECIES, a, ai);
+			res = aVec.add(res);
+			res.intoArray(c, ci);
 			//read 64B cachelines of a and c
 			//compute c' = c * a
 			//write back 64B cacheline of c = c'
-			c[ ci+0 ] += a[ ai+0 ];
-			c[ ci+1 ] += a[ ai+1 ];
-			c[ ci+2 ] += a[ ai+2 ];
-			c[ ci+3 ] += a[ ai+3 ];
-			c[ ci+4 ] += a[ ai+4 ];
-			c[ ci+5 ] += a[ ai+5 ];
-			c[ ci+6 ] += a[ ai+6 ];
-			c[ ci+7 ] += a[ ai+7 ];
+			// c[ ci+0 ] += a[ ai+0 ];
+			// c[ ci+1 ] += a[ ai+1 ];
+			// c[ ci+2 ] += a[ ai+2 ];
+			// c[ ci+3 ] += a[ ai+3 ];
+			// c[ ci+4 ] += a[ ai+4 ];
+			// c[ ci+5 ] += a[ ai+5 ];
+			// c[ ci+6 ] += a[ ai+6 ];
+			// c[ ci+7 ] += a[ ai+7 ];
 		}
 	}
 
