@@ -77,6 +77,7 @@ public final class CLALibRightMultBy {
 
 			if(betterIfDecompressed(m1)){
 				// perform uncompressed multiplication.
+				LOG.error("ncol in compressed matrix right mm  :  " + m1.getNumColumns());
 				MatrixBlock m1uc = m1.decompress(k);
 				return LibMatrixMult.matrixMult(m1uc, m2, ret, k);
 			}

@@ -413,7 +413,7 @@ public final class CLALibDecompress {
 			_eps = eps;
 			_rl = rl;
 			_ru = ru;
-			_blklen = 32768 / ret.getNumColumns();
+			_blklen = Math.max(32768 / ret.getNumColumns(), 128);
 			_constV = constV;
 		}
 
@@ -458,7 +458,7 @@ public final class CLALibDecompress {
 			_eps = eps;
 			_rl = rl;
 			_ru = ru;
-			_blklen = 32768 / ret.getNumColumns();
+			_blklen = Math.max(32768 / ret.getNumColumns(), 128);
 			_constV = constV;
 		}
 
