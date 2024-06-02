@@ -65,6 +65,8 @@ public class MatrixBlockDictionary extends ADictionary {
 
 	final private MatrixBlock _data;
 
+	static final VectorSpecies<Double> SPECIES = DoubleVector.SPECIES_PREFERRED;
+
 	/**
 	 * Unsafe private constructor that does not check the data validity. USE WITH CAUTION.
 	 * 
@@ -2041,8 +2043,6 @@ public class MatrixBlockDictionary extends ADictionary {
 			}
 		}
 	}
-
-	static final VectorSpecies<Double> SPECIES = DoubleVector.SPECIES_PREFERRED;
 
 	private static void preaggValuesFromDenseDictBlockedIKJ(double[] a, double[] b, double[] ret, int bi, int bk, int bj,
 		int bie, int bke, int cz, int az, int ls, int cut, int sOffT, int eOffT) {

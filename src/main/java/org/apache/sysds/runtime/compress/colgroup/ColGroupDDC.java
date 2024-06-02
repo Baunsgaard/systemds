@@ -26,6 +26,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
+import jdk.incubator.vector.DoubleVector;
+import jdk.incubator.vector.VectorSpecies;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.sysds.runtime.DMLRuntimeException;
 import org.apache.sysds.runtime.compress.CompressedMatrixBlock;
@@ -70,6 +72,8 @@ public class ColGroupDDC extends APreAgg implements IMapToDataGroup {
 	private static final long serialVersionUID = -5769772089913918987L;
 
 	protected final AMapToData _data;
+
+	static final VectorSpecies<Double> SPECIES = DoubleVector.SPECIES_PREFERRED;
 
 	private ColGroupDDC(IColIndex colIndexes, IDictionary dict, AMapToData data, int[] cachedCounts) {
 		super(colIndexes, dict, cachedCounts);
@@ -595,24 +599,48 @@ public class ColGroupDDC extends APreAgg implements IMapToDataGroup {
 			throw new NotImplementedException();
 	}
 
-	public void rightDecompressingMult(MatrixBlock right, MatrixBlock ret, int rl, int ru, int nRows){
-		double[] a = _dict.getValues();
-		double[] b = right.getDenseBlockValues();
-		double[] c = ret.getDenseBlockValues();
-		int kd = _colIndexes.size();
-		int jd = right.getNumColumns();
-		
-		for(int i = rl; i < ru; i++){
-			int offi = _data.getIndex(i) * kd;
-			for (int k = 0; k < kd; k++){
-				double aa = a[offi + k];
-				final int k_right = _colIndexes.get(k);
+	public void rightDecompressingMult(MatrixBlock right, MatrixBlock ret, int rl, int ru, int nRows) {
+		final double[] a = _dict.getValues();
+		final double[] b = right.getDenseBlockValues();
+		final double[] c = ret.getDenseBlockValues();
+		final int kd = _colIndexes.size();
+		final int jd = right.getNumColumns();
+		final DoubleVector vVec = DoubleVector.zero(SPECIES);
+		final int vLen = SPECIES.length();
 
-				for(int j = 0; j < jd; j++){
-					double bb = b[k_right * jd + j];
-					c[i * kd + j] += bb * aa;
-				}
+		for(int i = rl; i < ru; i++) {
+			int offi = _data.getIndex(i) * kd;
+			for(int k = 0; k < kd; k++) {
+				final double aa = a[offi + k];
+				final int k_right = _colIndexes.get(k);
+				vectMM(aa, b, c, jd, i, k_right, vLen, vVec);
+				// for(int j = 0; j < jd; j++) {
+				// double bb = b[k_right * jd + j];
+				// c[i * jd + j] += bb * aa;
+				// }
 			}
+		}
+	}
+
+	final void vectMM(double aa, double[] b, double[] c, int jd, int i, int k, int vLen, DoubleVector vVec) {
+
+		vVec = vVec.broadcast(aa);
+		final int end = jd - (jd % vLen);
+		int offOut = i * jd;
+		for(int j = 0; j < end; j += vLen, offOut += vLen) {
+			DoubleVector res = DoubleVector.fromArray(SPECIES, c, offOut);
+			DoubleVector bVec = DoubleVector.fromArray(SPECIES, b, j);
+			res = vVec.fma(bVec, res);
+			res.intoArray(c, offOut);
+			// ret[offOut] += v * b[j];
+			// ret[offOut + 1] += v * b[j + 1];
+			// ret[offOut + 2] += v * b[j + 2];
+			// ret[offOut + 3] += v * b[j + 3];
+
+		}
+		for(int j = end; j < jd; j++, offOut++) {
+			double bb = b[k * jd + j];
+			c[offOut] += bb * aa;
 		}
 	}
 
@@ -995,7 +1023,8 @@ public class ColGroupDDC extends APreAgg implements IMapToDataGroup {
 	}
 
 	@Override
-	public AColGroup[] splitReshapePushDown(int multiplier, int nRow, int nColOrg, ExecutorService pool) throws Exception {
+	public AColGroup[] splitReshapePushDown(int multiplier, int nRow, int nColOrg, ExecutorService pool)
+		throws Exception {
 		AMapToData[] maps = _data.splitReshapeDDCPushDown(multiplier, pool);
 		AColGroup[] res = new AColGroup[multiplier];
 		for(int i = 0; i < multiplier; i++) {
