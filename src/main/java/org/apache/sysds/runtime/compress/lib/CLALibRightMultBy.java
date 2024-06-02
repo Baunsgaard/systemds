@@ -33,7 +33,6 @@ import org.apache.sysds.conf.ConfigurationManager;
 import org.apache.sysds.conf.DMLConfig;
 import org.apache.sysds.runtime.DMLRuntimeException;
 import org.apache.sysds.runtime.compress.CompressedMatrixBlock;
-import org.apache.sysds.runtime.compress.DMLCompressionException;
 import org.apache.sysds.runtime.compress.colgroup.AColGroup;
 import org.apache.sysds.runtime.compress.colgroup.ColGroupConst;
 import org.apache.sysds.runtime.compress.colgroup.indexes.ColIndexFactory;
@@ -77,7 +76,7 @@ public final class CLALibRightMultBy {
 
 			if(betterIfDecompressed(m1)) {
 				// perform uncompressed multiplication.
-				return decompressingMatrixMult(m1, m2, ret, k);
+				return decompressingMatrixMult(m1, m2, k);
 			}
 
 			if(!allowOverlap) {
@@ -99,28 +98,44 @@ public final class CLALibRightMultBy {
 		}
 	}
 
-	private static MatrixBlock decompressingMatrixMult(CompressedMatrixBlock m1, MatrixBlock m2, MatrixBlock ret,
-		int k) {
+	private static MatrixBlock decompressingMatrixMult(CompressedMatrixBlock m1, MatrixBlock m2, int k) {
 
 		LOG.error("ncol in compressed matrix right mm  :  " + m1.getNumColumns());
-		
-		
-		final int rl = m1.getNumRows();
-		final int cr = m2.getNumColumns();
-		// final int rr = m2.getNumRows(); // shared dim
-		ret = new MatrixBlock(rl, cr, false);
-		final Future<MatrixBlock> f = ret.allocateBlockAsync();
 
-
-		MatrixBlock m1uc = m1.decompress(k);
-
-
+		ExecutorService pool = CommonThreadPool.get(k);
 		try {
-			ret = f.get();
-			return LibMatrixMult.matrixMult(m1uc, m2, ret, k);
+			final int rl = m1.getNumRows();
+			final int cr = m2.getNumColumns();
+			final int rr = m2.getNumRows(); // shared dim
+			final MatrixBlock ret = new MatrixBlock(rl, cr, false);
+			ret.allocateBlock();
+
+			// MatrixBlock m1uc = m1.decompress(k);
+			final List<Future<Long>> tasks = new ArrayList<>();
+			final List<AColGroup> groups = m1.getColGroups();
+			final int blkz = Math.max((rl / k), 1000);
+			for(int i = 0; i < rr; i++) {
+				final int start = i;
+				final int end = Math.min(i + blkz, rr);
+				tasks.add(pool.submit(() -> {
+					for(AColGroup g : groups)
+						g.rightDecompressingMult(m2, ret, start, end, rl);
+					return ret.recomputeNonZeros(start, end);
+				}));
+			}
+			long nnz = 0;
+			for(Future<Long> t : tasks)
+				nnz += t.get();
+
+			ret.setNonZeros(nnz);
+			ret.examSparsity();
+			return ret;
 		}
 		catch(InterruptedException | ExecutionException e) {
 			throw new DMLRuntimeException(e);
+		}
+		finally {
+			pool.shutdown();
 		}
 
 	}
@@ -237,14 +252,6 @@ public final class CLALibRightMultBy {
 			filteredGroups = colGroups;
 			constV = null;
 		}
-
-		try {
-			f.get();
-		}
-		catch(InterruptedException | ExecutionException e) {
-			throw new DMLRuntimeException(e);
-		}
-
 
 		// LOG.debug("RMM Filtered : " + t.stop());
 

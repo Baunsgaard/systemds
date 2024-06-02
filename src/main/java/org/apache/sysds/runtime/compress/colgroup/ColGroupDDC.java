@@ -595,6 +595,28 @@ public class ColGroupDDC extends APreAgg implements IMapToDataGroup {
 			throw new NotImplementedException();
 	}
 
+	public void rightDecompressingMult(MatrixBlock right, MatrixBlock ret, int rl, int ru, int nRows){
+		double[] a = _dict.getValues();
+		double[] b = right.getDenseBlockValues();
+		double[] c = ret.getDenseBlockValues();
+		int jd = _colIndexes.size();
+		int kd = right.getNumColumns();
+		
+		for(int i = rl; i < ru; i++){
+			int d = _data.getIndex(i);
+			int offi = d * jd;
+			for (int j = 0; j < jd; j++){
+				double aa = a[offi + j];
+				final int j_right = _colIndexes.get(j);
+
+				for(int k = 0; k < kd; kd++){
+					double bb = b[j_right * kd + k];
+					c[i * jd + k] += bb * aa;
+				}
+			}
+		}
+	}
+
 	private void leftMMIdentityPreAggregateDenseSingleRowRangeIndex(double[] values, int pos, double[] values2, int pos2,
 		int cl, int cu) {
 		IdentityDictionary a = (IdentityDictionary) _dict;

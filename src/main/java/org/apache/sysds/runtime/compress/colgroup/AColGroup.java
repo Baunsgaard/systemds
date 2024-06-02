@@ -390,6 +390,19 @@ public abstract class AColGroup implements Serializable {
 	public abstract AColGroup rightMultByMatrix(MatrixBlock right, IColIndex allCols, int k);
 
 	/**
+	 * Right side Matrix multiplication, iterating though this column group and adding to the ret
+	 * 
+	 * @param right Right side matrix to multiply with.
+	 * @param ret   The return matrix to add results to
+	 * @param rl    The row of this columngroup to multiply from
+	 * @param ru    The row of this columngroup to multiply to (not inclusive)
+	 * @param nRows The number of rows in this columngroup
+	 */
+	public void rightDecompressingMult(MatrixBlock right, MatrixBlock ret, int rl, int ru, int nRows){
+		throw new NotImplementedException();
+	}
+
+	/**
 	 * Do a transposed self matrix multiplication on the left side t(x) %*% x. but only with this column group.
 	 * 
 	 * This gives better performance since there is no need to iterate through all the rows of the matrix, but the
