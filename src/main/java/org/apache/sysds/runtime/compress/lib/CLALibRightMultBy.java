@@ -106,17 +106,17 @@ public final class CLALibRightMultBy {
 		try {
 			final int rl = m1.getNumRows();
 			final int cr = m2.getNumColumns();
-			final int rr = m2.getNumRows(); // shared dim
+			// final int rr = m2.getNumRows(); // shared dim
 			final MatrixBlock ret = new MatrixBlock(rl, cr, false);
 			ret.allocateBlock();
 
 			// MatrixBlock m1uc = m1.decompress(k);
 			final List<Future<Long>> tasks = new ArrayList<>();
 			final List<AColGroup> groups = m1.getColGroups();
-			final int blkz = Math.max((rl / k), 1000);
-			for(int i = 0; i < rr; i++) {
+			final int blkz = Math.max((rl / k), 10);
+			for(int i = 0; i < rl; i++) {
 				final int start = i;
-				final int end = Math.min(i + blkz, rr);
+				final int end = Math.min(i + blkz, rl);
 				tasks.add(pool.submit(() -> {
 					for(AColGroup g : groups)
 						g.rightDecompressingMult(m2, ret, start, end, rl);

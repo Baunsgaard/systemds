@@ -599,19 +599,18 @@ public class ColGroupDDC extends APreAgg implements IMapToDataGroup {
 		double[] a = _dict.getValues();
 		double[] b = right.getDenseBlockValues();
 		double[] c = ret.getDenseBlockValues();
-		int jd = _colIndexes.size();
-		int kd = right.getNumColumns();
+		int kd = _colIndexes.size();
+		int jd = right.getNumColumns();
 		
 		for(int i = rl; i < ru; i++){
-			int d = _data.getIndex(i);
-			int offi = d * jd;
-			for (int j = 0; j < jd; j++){
-				double aa = a[offi + j];
-				final int j_right = _colIndexes.get(j);
+			int offi = _data.getIndex(i) * kd;
+			for (int k = 0; k < kd; k++){
+				double aa = a[offi + k];
+				final int k_right = _colIndexes.get(k);
 
-				for(int k = 0; k < kd; k++){
-					double bb = b[j_right * kd + k];
-					c[i * jd + k] += bb * aa;
+				for(int j = 0; j < jd; j++){
+					double bb = b[k_right * jd + j];
+					c[i * kd + j] += bb * aa;
 				}
 			}
 		}
