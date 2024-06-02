@@ -33,6 +33,7 @@ import org.apache.sysds.conf.ConfigurationManager;
 import org.apache.sysds.conf.DMLConfig;
 import org.apache.sysds.runtime.DMLRuntimeException;
 import org.apache.sysds.runtime.compress.CompressedMatrixBlock;
+import org.apache.sysds.runtime.compress.DMLCompressionException;
 import org.apache.sysds.runtime.compress.colgroup.AColGroup;
 import org.apache.sysds.runtime.compress.colgroup.ColGroupConst;
 import org.apache.sysds.runtime.compress.colgroup.indexes.ColIndexFactory;
@@ -46,7 +47,7 @@ import org.apache.sysds.utils.DMLCompressionStatistics;
 public final class CLALibRightMultBy {
 	private static final Log LOG = LogFactory.getLog(CLALibRightMultBy.class.getName());
 
-	private CLALibRightMultBy(){
+	private CLALibRightMultBy() {
 		// private constructor
 	}
 
@@ -74,12 +75,9 @@ public final class CLALibRightMultBy {
 			if(m2 instanceof CompressedMatrixBlock)
 				m2 = ((CompressedMatrixBlock) m2).getUncompressed("Uncompressed right side of right MM", k);
 
-
-			if(betterIfDecompressed(m1)){
+			if(betterIfDecompressed(m1)) {
 				// perform uncompressed multiplication.
-				LOG.error("ncol in compressed matrix right mm  :  " + m1.getNumColumns());
-				MatrixBlock m1uc = m1.decompress(k);
-				return LibMatrixMult.matrixMult(m1uc, m2, ret, k);
+				return decompressingMatrixMult(m1, m2, ret, k);
 			}
 
 			if(!allowOverlap) {
@@ -101,18 +99,43 @@ public final class CLALibRightMultBy {
 		}
 	}
 
-	private static boolean betterIfDecompressed(CompressedMatrixBlock m){
-		for( AColGroup g :  m.getColGroups()){
-			if(g.getNumValues() * 2 >= m.getNumRows()){
+	private static MatrixBlock decompressingMatrixMult(CompressedMatrixBlock m1, MatrixBlock m2, MatrixBlock ret,
+		int k) {
+
+		LOG.error("ncol in compressed matrix right mm  :  " + m1.getNumColumns());
+		
+		
+		final int rl = m1.getNumRows();
+		final int cr = m2.getNumColumns();
+		// final int rr = m2.getNumRows(); // shared dim
+		ret = new MatrixBlock(rl, cr, false);
+		final Future<MatrixBlock> f = ret.allocateBlockAsync();
+
+
+		MatrixBlock m1uc = m1.decompress(k);
+
+
+		try {
+			ret = f.get();
+			return LibMatrixMult.matrixMult(m1uc, m2, ret, k);
+		}
+		catch(InterruptedException | ExecutionException e) {
+			throw new DMLRuntimeException(e);
+		}
+
+	}
+
+	private static boolean betterIfDecompressed(CompressedMatrixBlock m) {
+		for(AColGroup g : m.getColGroups()) {
+			if(g.getNumValues() * 2 >= m.getNumRows()) {
 				return true;
 			}
 		}
 		return false;
 	}
 
-
 	private static CompressedMatrixBlock RMMOverlapping(CompressedMatrixBlock m1, MatrixBlock that, int k) {
-		
+
 		final int rl = m1.getNumRows();
 		final int cr = that.getNumColumns();
 		final int rr = that.getNumRows(); // shared dim
@@ -164,22 +187,22 @@ public final class CLALibRightMultBy {
 		// int bestCandidate = -1;
 		// int bestCandidateValuesSize = Integer.MAX_VALUE;
 		// for(int i = 0; i < out.size(); i++) {
-		// 	AColGroup g = out.get(i);
-		// 	if(g instanceof ColGroupDDC && g.getNumCols() == nCol && g.getNumValues() < bestCandidateValuesSize)
-		// 		bestCandidate = i;
+		// AColGroup g = out.get(i);
+		// if(g instanceof ColGroupDDC && g.getNumCols() == nCol && g.getNumValues() < bestCandidateValuesSize)
+		// bestCandidate = i;
 		// }
 
 		constantRow.sparseToDense();
 
 		// if(bestCandidate != -1) {
-		// 	AColGroup bc = out.get(bestCandidate);
-		// 	out.remove(bestCandidate);
-		// 	AColGroup ng = bc.binaryRowOpRight(new BinaryOperator(Plus.getPlusFnObject(), 1),
-		// 		constantRow.getDenseBlockValues(), true);
-		// 	out.add(ng);
+		// AColGroup bc = out.get(bestCandidate);
+		// out.remove(bestCandidate);
+		// AColGroup ng = bc.binaryRowOpRight(new BinaryOperator(Plus.getPlusFnObject(), 1),
+		// constantRow.getDenseBlockValues(), true);
+		// out.add(ng);
 		// }
 		// else
-			out.add(ColGroupConst.create(constantRow.getDenseBlockValues()));
+		out.add(ColGroupConst.create(constantRow.getDenseBlockValues()));
 	}
 
 	private static MatrixBlock RMM(CompressedMatrixBlock m1, MatrixBlock that, int k) {
@@ -196,23 +219,16 @@ public final class CLALibRightMultBy {
 		// start allocation of output.
 		MatrixBlock ret = new MatrixBlock(rl, cr, false);
 		final Future<MatrixBlock> f = ret.allocateBlockAsync();
-		try {
-			f.get();
-		}
-		catch(InterruptedException | ExecutionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
 		double[] constV;
 		final List<AColGroup> filteredGroups;
 
 		if(shouldFilter) {
-			if(CLALibUtils.alreadyPreFiltered(colGroups, cr)){
-				filteredGroups = new ArrayList<>(colGroups.size() -1);
+			if(CLALibUtils.alreadyPreFiltered(colGroups, cr)) {
+				filteredGroups = new ArrayList<>(colGroups.size() - 1);
 				constV = CLALibUtils.filterGroupsAndSplitPreAggOneConst(colGroups, filteredGroups);
 			}
-			else{
+			else {
 				constV = new double[rr];
 				filteredGroups = CLALibUtils.filterGroups(colGroups, constV);
 			}
@@ -222,6 +238,14 @@ public final class CLALibRightMultBy {
 			constV = null;
 		}
 
+		try {
+			f.get();
+		}
+		catch(InterruptedException | ExecutionException e) {
+			throw new DMLRuntimeException(e);
+		}
+
+
 		// LOG.debug("RMM Filtered : " + t.stop());
 
 		final List<AColGroup> retCg = new ArrayList<>(filteredGroups.size());
@@ -230,7 +254,6 @@ public final class CLALibRightMultBy {
 		else
 			RMMParallel(filteredGroups, that, retCg, k);
 
-		
 		// LOG.debug("RMM Groups done : " + t.stop());
 
 		if(constV != null) {
@@ -240,7 +263,6 @@ public final class CLALibRightMultBy {
 			constV = mmTemp.isEmpty() ? null : mmTemp.getDenseBlockValues();
 		}
 
-
 		// LOG.debug("RMM Const done: " + t.stop());
 
 		final Timing time = new Timing(true);
@@ -248,9 +270,9 @@ public final class CLALibRightMultBy {
 		ret = asyncRet(f);
 		CLALibDecompress.decompressDenseMultiThread(ret, retCg, constV, 0, k, true);
 
-		if(DMLScript.STATISTICS) 
+		if(DMLScript.STATISTICS)
 			DMLCompressionStatistics.addDecompressTime(time.stop(), k);
-		
+
 		// LOG.debug("RMM Decompress done: " + t.stop());
 		return ret;
 	}
@@ -296,7 +318,7 @@ public final class CLALibRightMultBy {
 		catch(InterruptedException | ExecutionException e) {
 			throw new DMLRuntimeException(e);
 		}
-		finally{
+		finally {
 			pool.shutdown();
 		}
 		return containsNull;
