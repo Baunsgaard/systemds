@@ -114,13 +114,13 @@ public final class CLALibRightMultBy {
 			final List<Future<Long>> tasks = new ArrayList<>();
 			final List<AColGroup> groups = m1.getColGroups();
 			final int blkz = Math.max((rl / k), 10);
-			for(int i = 0; i < rl; i++) {
+			for(int i = 0; i < rl; i += blkz) {
 				final int start = i;
 				final int end = Math.min(i + blkz, rl);
 				tasks.add(pool.submit(() -> {
 					for(AColGroup g : groups)
 						g.rightDecompressingMult(m2, ret, start, end, rl);
-					return ret.recomputeNonZeros(start, end);
+					return ret.recomputeNonZeros(start, end - 1);
 				}));
 			}
 			long nnz = 0;
