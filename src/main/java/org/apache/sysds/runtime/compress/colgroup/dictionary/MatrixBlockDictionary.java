@@ -2058,23 +2058,6 @@ public class MatrixBlockDictionary extends ADictionary {
 				final int cells = eOff - sOff;
 				final double v = a[offI + k];
 				vecInnerLoop(v, b, ret, offOutT, eOff, sOff, cells, vLen, vVec);
-				// int offOut = offOutT;
-				// vVec = vVec.broadcast(v);
-				// final int end = eOff - (cells % vLen);
-				// for(int j = sOff; j < end; j += vLen, offOut += vLen) {
-				// 	DoubleVector res = DoubleVector.fromArray(SPECIES, ret, offOut);
-				// 	DoubleVector bVec = DoubleVector.fromArray(SPECIES, b, j);
-				// 	res = vVec.fma(bVec, res);
-				// 	res.intoArray(ret, offOut);
-				// 	// ret[offOut] += v * b[j];
-				// 	// ret[offOut + 1] += v * b[j + 1];
-				// 	// ret[offOut + 2] += v * b[j + 2];
-				// 	// ret[offOut + 3] += v * b[j + 3];
-
-				// }
-				// for(int j = end; j < eOff; j++, offOut++) {
-				// 	ret[offOut] += v * b[j];
-				// }
 			}
 		}
 	}
