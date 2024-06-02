@@ -609,7 +609,7 @@ public class ColGroupDDC extends APreAgg implements IMapToDataGroup {
 				double aa = a[offi + j];
 				final int j_right = _colIndexes.get(j);
 
-				for(int k = 0; k < kd; kd++){
+				for(int k = 0; k < kd; k++){
 					double bb = b[j_right * kd + k];
 					c[i * jd + k] += bb * aa;
 				}
