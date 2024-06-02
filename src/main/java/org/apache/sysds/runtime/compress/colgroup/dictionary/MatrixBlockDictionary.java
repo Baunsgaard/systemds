@@ -2044,7 +2044,7 @@ public class MatrixBlockDictionary extends ADictionary {
 
 	static final VectorSpecies<Double> SPECIES = DoubleVector.SPECIES_PREFERRED;
 
-	private void preaggValuesFromDenseDictBlockedIKJ(double[] a, double[] b, double[] ret, int bi, int bk, int bj,
+	private static void preaggValuesFromDenseDictBlockedIKJ(double[] a, double[] b, double[] ret, int bi, int bk, int bj,
 		int bie, int bke, int cz, int az, int ls, int cut, int sOffT, int eOffT) {
 		final int vLen = SPECIES.length();
 		DoubleVector vVec = DoubleVector.zero(SPECIES);
@@ -2057,25 +2057,48 @@ public class MatrixBlockDictionary extends ADictionary {
 				final int eOff = eOffT + idb;
 				final int cells = eOff - sOff;
 				final double v = a[offI + k];
-				int offOut = offOutT;
-				vVec = vVec.broadcast(v);
-				final int end = eOff - (cells % vLen);
-				for(int j = sOff; j < end; j += vLen, offOut += vLen) {
-					DoubleVector res = DoubleVector.fromArray(SPECIES, ret, offOut);
-					DoubleVector bVec = DoubleVector.fromArray(SPECIES, b, j);
-					res = vVec.fma(bVec, res);
-					res.intoArray(ret, offOut);
-					// ret[offOut] += v * b[j];
-					// ret[offOut + 1] += v * b[j + 1];
-					// ret[offOut + 2] += v * b[j + 2];
-					// ret[offOut + 3] += v * b[j + 3];
+				vecInnerLoop(v, b, ret, offOutT, eOff, sOff, cells, vLen, vVec);
+				// int offOut = offOutT;
+				// vVec = vVec.broadcast(v);
+				// final int end = eOff - (cells % vLen);
+				// for(int j = sOff; j < end; j += vLen, offOut += vLen) {
+				// 	DoubleVector res = DoubleVector.fromArray(SPECIES, ret, offOut);
+				// 	DoubleVector bVec = DoubleVector.fromArray(SPECIES, b, j);
+				// 	res = vVec.fma(bVec, res);
+				// 	res.intoArray(ret, offOut);
+				// 	// ret[offOut] += v * b[j];
+				// 	// ret[offOut + 1] += v * b[j + 1];
+				// 	// ret[offOut + 2] += v * b[j + 2];
+				// 	// ret[offOut + 3] += v * b[j + 3];
 
-				}
-				for(int j = end; j < eOff; j++, offOut++) {
-					ret[offOut] += v * b[j];
-				}
+				// }
+				// for(int j = end; j < eOff; j++, offOut++) {
+				// 	ret[offOut] += v * b[j];
+				// }
 			}
 		}
+	}
+
+	private static void vecInnerLoop(final double v, final double[] b, final double[] ret, final int offOutT,
+		final int eOff, final int sOff, final int cells, final int vLen, DoubleVector vVec) {
+		int offOut = offOutT;
+		vVec = vVec.broadcast(v);
+		final int end = eOff - (cells % vLen);
+		for(int j = sOff; j < end; j += vLen, offOut += vLen) {
+			DoubleVector res = DoubleVector.fromArray(SPECIES, ret, offOut);
+			DoubleVector bVec = DoubleVector.fromArray(SPECIES, b, j);
+			res = vVec.fma(bVec, res);
+			res.intoArray(ret, offOut);
+			// ret[offOut] += v * b[j];
+			// ret[offOut + 1] += v * b[j + 1];
+			// ret[offOut + 2] += v * b[j + 2];
+			// ret[offOut + 3] += v * b[j + 3];
+
+		}
+		for(int j = end; j < eOff; j++, offOut++) {
+			ret[offOut] += v * b[j];
+		}
+
 	}
 
 	private void preaggValuesFromDenseDictDenseAggRangeGeneric(final int numVals, final IColIndex colIndexes,
