@@ -4155,7 +4155,7 @@ public class LibMatrixMult
 	//note: public for use by codegen for consistency
 	public static void vectAdd( double[] a, double[] c, int ai, int ci, final int len )
 	{
-		final int vLen = SPECIES.length();
+		final int vLen = 8;//SPECIES.length();
 		final int bn = len%vLen;
 		
 		//rest, not aligned to vLen-blocks
@@ -4165,21 +4165,21 @@ public class LibMatrixMult
 		//unrolled vLen-block  (for better instruction-level parallelism)
 		for( int j = bn; j < len; j+=vLen, ai+=vLen, ci+=vLen) 
 		{
-			DoubleVector res = DoubleVector.fromArray(SPECIES, c, ci);
-			DoubleVector aVec = DoubleVector.fromArray(SPECIES, a, ai);
-			res = aVec.add(res);
-			res.intoArray(c, ci);
+			// DoubleVector res = DoubleVector.fromArray(SPECIES, c, ci);
+			// DoubleVector aVec = DoubleVector.fromArray(SPECIES, a, ai);
+			// res = aVec.add(res);
+			// res.intoArray(c, ci);
 			//read 64B cachelines of a and c
 			//compute c' = c * a
 			//write back 64B cacheline of c = c'
-			// c[ ci+0 ] += a[ ai+0 ];
-			// c[ ci+1 ] += a[ ai+1 ];
-			// c[ ci+2 ] += a[ ai+2 ];
-			// c[ ci+3 ] += a[ ai+3 ];
-			// c[ ci+4 ] += a[ ai+4 ];
-			// c[ ci+5 ] += a[ ai+5 ];
-			// c[ ci+6 ] += a[ ai+6 ];
-			// c[ ci+7 ] += a[ ai+7 ];
+			c[ ci+0 ] += a[ ai+0 ];
+			c[ ci+1 ] += a[ ai+1 ];
+			c[ ci+2 ] += a[ ai+2 ];
+			c[ ci+3 ] += a[ ai+3 ];
+			c[ ci+4 ] += a[ ai+4 ];
+			c[ ci+5 ] += a[ ai+5 ];
+			c[ ci+6 ] += a[ ai+6 ];
+			c[ ci+7 ] += a[ ai+7 ];
 		}
 	}
 
