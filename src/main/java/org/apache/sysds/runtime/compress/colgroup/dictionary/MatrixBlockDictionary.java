@@ -2079,6 +2079,7 @@ public class MatrixBlockDictionary extends ADictionary {
 		int bie, int bke, int cz, int az, int ls, int cut, int sOffT, int eOffT) {
 		final int vLen = SPECIES.length();
 		final DoubleVector vVec = DoubleVector.zero(SPECIES);
+		final int leftover = sOffT - eOffT % vLen; // leftover not vectorized
 		for(int i = bi; i < bie; i++) {
 			final int offI = i * cz;
 			final int offOutT = i * az + bj;
@@ -2086,23 +2087,21 @@ public class MatrixBlockDictionary extends ADictionary {
 				final int idb = (k + ls) * cut;
 				final int sOff = sOffT + idb;
 				final int eOff = eOffT + idb;
-				final int cells = eOff - sOff;
 				final double v = a[offI + k];
-				vecInnerLoop(v, b, ret, offOutT, eOff, sOff, cells, vLen, vVec);
+				vecInnerLoop(v, b, ret, offOutT, eOff, sOff, leftover, vLen, vVec);
 			}
 		}
 	}
 
 	private static void vecInnerLoop(final double v, final double[] b, final double[] ret, final int offOutT,
-		final int eOff, final int sOff, final int cells, final int vLen, DoubleVector vVec) {
+		final int eOff, final int sOff, final int leftover, final int vLen, DoubleVector vVec) {
 		int offOut = offOutT;
 		vVec = vVec.broadcast(v);
-		final int end = eOff - (cells % vLen);
+		final int end = eOff - leftover;
 		for(int j = sOff; j < end; j += vLen, offOut += vLen) {
 			DoubleVector res = DoubleVector.fromArray(SPECIES, ret, offOut);
 			DoubleVector bVec = DoubleVector.fromArray(SPECIES, b, j);
-			res = vVec.fma(bVec, res);
-			res.intoArray(ret, offOut);
+			vVec.fma(bVec, res).intoArray(ret, offOut);
 		}
 		for(int j = end; j < eOff; j++, offOut++) {
 			ret[offOut] += v * b[j];

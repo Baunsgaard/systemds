@@ -111,38 +111,36 @@ public final class CLALibScalar {
 	private static MatrixBlock fusedScalarAndDecompress(CompressedMatrixBlock in, ScalarOperator sop) {
 		int k = sop.getNumThreads();
 		ExecutorService pool = CommonThreadPool.get(k);
-		try{
+		try {
 
 			MatrixBlock out = new MatrixBlock(in.getNumRows(), in.getNumColumns(), false);
 			final List<AColGroup> groups = in.getColGroups();
 			out.allocateDenseBlock();
 			DenseBlock db = out.getDenseBlock();
-			final int blkz = Math.max(in.getNumRows() / (k*2), 256);
+			final int blkz = Math.max(in.getNumRows() / (k * 2), 256);
 			final List<Future<Long>> tasks = new ArrayList<>();
-			for(int i = 0; i < in.getNumRows(); i += blkz){
+			for(int i = 0; i < in.getNumRows(); i += blkz) {
 				final int start = i;
-				final int end =  Math.min(i + blkz, in.getNumRows());
-				tasks.add(pool.submit(()->
-					fusedDecompressAndScalar(groups, in.getNumColumns(), start,end, db, sop)
-				));
+				final int end = Math.min(i + blkz, in.getNumRows());
+				tasks.add(pool.submit(() -> fusedDecompressAndScalar(groups, in.getNumColumns(), start, end, db, sop)));
 			}
 			long nnz = 0;
-			for(Future<Long> t : tasks){
+			for(Future<Long> t : tasks) {
 				nnz += t.get();
 			}
 			out.setNonZeros(nnz);
 			out.examSparsity(true, k);
 			return out;
 		}
-		catch(Exception e){
+		catch(Exception e) {
 			throw new DMLCompressionException("failed fused scalar operation", e);
 		}
-		finally{
+		finally {
 			pool.shutdown();
 		}
-		
-			// MatrixBlock m1d = m1.decompress(sop.getNumThreads());
-			// return m1d.scalarOperations(sop, result);
+
+		// MatrixBlock m1d = m1.decompress(sop.getNumThreads());
+		// return m1d.scalarOperations(sop, result);
 	}
 
 	private static long fusedDecompressAndScalar(final List<AColGroup> groups, int nCol, int start, int end,
@@ -160,6 +158,7 @@ public final class CLALibScalar {
 		DenseBlock db, ScalarOperator sop) {
 		long nnz = 0;
 		for(AColGroup g : groups) {
+			// main block to optimize is decompression speed since it is most likely an overlapping input
 			g.decompressToDenseBlock(db, bs, be);
 		}
 		for(int r = bs; r < be; r++) {
