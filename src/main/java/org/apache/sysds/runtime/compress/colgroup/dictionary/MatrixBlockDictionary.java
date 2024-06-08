@@ -2038,42 +2038,42 @@ public class MatrixBlockDictionary extends ADictionary {
 					final int bje = Math.min(az, bj + blkzJ);
 					final int sOffT = rs + bj;
 					final int eOffT = rs + bje;
-					// preaggValuesFromDenseDictBlockedIKJ(values, b, ret, bi, bk, bj, bie, bke, cz, az, ls, cut, sOffT, eOffT);
-					preaggValuesFromDenseDictBlockedIJK(values, b, ret, bi, bk, bj, bie, bke, bje, cz, az, ls, cut, sOffT, eOffT);
+					preaggValuesFromDenseDictBlockedIKJ(values, b, ret, bi, bk, bj, bie, bke, cz, az, ls, cut, sOffT, eOffT);
+					// preaggValuesFromDenseDictBlockedIJK(values, b, ret, bi, bk, bj, bie, bke, bje, cz, az, ls, cut, sOffT, eOffT);
 				}
 			}
 		}
 	}
 
-	private static void preaggValuesFromDenseDictBlockedIJK(double[] a, double[] b, double[] ret, int bi, int bk, int bj,
-		int bie, int bke, int bje, int cz, int az, int ls, int cut, int sOffT, int eOffT) {
-		final int vLen = SPECIES.length();
-		final DoubleVector vVec = DoubleVector.zero(SPECIES);
-		for(int i = bi; i < bie; i++) {
-			final int offI = i * cz;
-			final int offOutT = i * az + bj;
-			int offOut = offOutT;
-			final int end = (bje - bj) % vLen;
-			for(int j = bj + sOffT; j < end  + sOffT; j += vLen, offOut += vLen) {
-				final DoubleVector res = DoubleVector.fromArray(SPECIES, ret, offOut);
-				for(int k = bk; k < bke; k++) {
-					final int idb = (k + ls) * cut;
-					final double v = a[offI + k];
-					vVec.broadcast(v);
-					DoubleVector bVec = DoubleVector.fromArray(SPECIES, b, idb + j);
-					vVec.fma(bVec, res);
-				}
-				res.intoArray(ret, offOut);
-			}
-			for(int j = end + sOffT; j < bje + sOffT; j++, offOut++) {
-				for(int k = bk; k < bke; k++) {
-					final int idb = (k + ls) * cut;
-					final double v = a[offI + k];
-					ret[offOut] += v * b[idb + j];
-				}
-			}
-		}
-	}
+	// private static void preaggValuesFromDenseDictBlockedIJK(double[] a, double[] b, double[] ret, int bi, int bk, int bj,
+	// 	int bie, int bke, int bje, int cz, int az, int ls, int cut, int sOffT, int eOffT) {
+	// 	final int vLen = SPECIES.length();
+	// 	final DoubleVector vVec = DoubleVector.zero(SPECIES);
+	// 	for(int i = bi; i < bie; i++) {
+	// 		final int offI = i * cz;
+	// 		final int offOutT = i * az + bj;
+	// 		int offOut = offOutT;
+	// 		final int end = (bje - bj) % vLen;
+	// 		for(int j = bj + sOffT; j < end  + sOffT; j += vLen, offOut += vLen) {
+	// 			final DoubleVector res = DoubleVector.fromArray(SPECIES, ret, offOut);
+	// 			for(int k = bk; k < bke; k++) {
+	// 				final int idb = (k + ls) * cut;
+	// 				final double v = a[offI + k];
+	// 				vVec.broadcast(v);
+	// 				DoubleVector bVec = DoubleVector.fromArray(SPECIES, b, idb + j);
+	// 				vVec.fma(bVec, res);
+	// 			}
+	// 			res.intoArray(ret, offOut);
+	// 		}
+	// 		for(int j = end + sOffT; j < bje + sOffT; j++, offOut++) {
+	// 			for(int k = bk; k < bke; k++) {
+	// 				final int idb = (k + ls) * cut;
+	// 				final double v = a[offI + k];
+	// 				ret[offOut] += v * b[idb + j];
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 	private static void preaggValuesFromDenseDictBlockedIKJ(double[] a, double[] b, double[] ret, int bi, int bk, int bj,
 		int bie, int bke, int cz, int az, int ls, int cut, int sOffT, int eOffT) {
