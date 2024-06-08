@@ -2048,20 +2048,20 @@ public class MatrixBlockDictionary extends ADictionary {
 	private static void preaggValuesFromDenseDictBlockedIJK(double[] a, double[] b, double[] ret, int bi, int bk, int bj,
 		int bie, int bke, int bje, int cz, int az, int ls, int cut, int sOffT, int eOffT) {
 		final int vLen = SPECIES.length();
-		DoubleVector vVec = DoubleVector.zero(SPECIES);
+		final DoubleVector vVec = DoubleVector.zero(SPECIES);
 		for(int i = bi; i < bie; i++) {
 			final int offI = i * cz;
 			final int offOutT = i * az + bj;
 			int offOut = offOutT;
 			final int end = (bje - bj) % vLen;
 			for(int j = bj + sOffT; j < end  + sOffT; j += vLen, offOut += vLen) {
-				DoubleVector res = DoubleVector.fromArray(SPECIES, ret, offOut);
+				final DoubleVector res = DoubleVector.fromArray(SPECIES, ret, offOut);
 				for(int k = bk; k < bke; k++) {
 					final int idb = (k + ls) * cut;
 					final double v = a[offI + k];
-					vVec = vVec.broadcast(v);
+					vVec.broadcast(v);
 					DoubleVector bVec = DoubleVector.fromArray(SPECIES, b, idb + j);
-					res = vVec.fma(bVec, res);
+					vVec.fma(bVec, res);
 				}
 				res.intoArray(ret, offOut);
 			}
