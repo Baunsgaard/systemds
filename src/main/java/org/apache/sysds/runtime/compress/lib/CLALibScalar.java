@@ -123,7 +123,7 @@ public final class CLALibScalar {
 				final int start = i;
 				final int end =  Math.min(i + blkz, in.getNumRows());
 				tasks.add(pool.submit(()->
-					fusedDecompressAndScalar(groups, in.getNumColumns(), start,end, db, sop);
+					fusedDecompressAndScalar(groups, in.getNumColumns(), start,end, db, sop)
 				));
 			}
 			long nnz = 0;
