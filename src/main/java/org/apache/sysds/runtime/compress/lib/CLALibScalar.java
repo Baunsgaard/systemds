@@ -83,7 +83,7 @@ public final class CLALibScalar {
 			int threadsAvailable = (sop.getNumThreads() > 1) ? sop.getNumThreads() : OptimizerUtils
 				.getConstrainedNumThreads(-1);
 			if(threadsAvailable > 1)
-				parallelScalarOperations(sop, colGroups, ret, threadsAvailable );
+				parallelScalarOperations(sop, colGroups, ret, threadsAvailable);
 			else {
 				// Apply the operation to each of the column groups.
 				// Most implementations will only modify metadata.
@@ -95,15 +95,16 @@ public final class CLALibScalar {
 			ret.setOverlapping(m1.isOverlapping());
 		}
 
-		if(sop.fn instanceof Divide){
+		if(sop.fn instanceof Divide) {
 			ret.setNonZeros(m1.getNonZeros());
 		}
-		else{
+		else {
 			ret.recomputeNonZeros();
 		}
 
-		// System.out.println("CLA Scalar: " + sop + " " + m1.getNumRows() + ", " + m1.getNumColumns() + ", " + m1.getColGroups().size()
-		// 	+ " -- " + "\t\t" + time.stop());
+		// System.out.println("CLA Scalar: " + sop + " " + m1.getNumRows() + ", " + m1.getNumColumns() + ", " +
+		// m1.getColGroups().size()
+		// + " -- " + "\t\t" + time.stop());
 		return ret;
 	}
 
@@ -121,21 +122,9 @@ public final class CLALibScalar {
 			for(int i = 0; i < in.getNumRows(); i += blkz){
 				final int start = i;
 				final int end =  Math.min(i + blkz, in.getNumRows());
-				tasks.add(pool.submit(()->{
-					for(AColGroup g : groups){
-						g.decompressToDenseBlock(db, start, end);
-					}
-					long nnz = 0;
-					for(int r = start; r < end ; r++){
-						double[] vals = db.values(r);
-						int off = db.pos(r);
-						for(int c = off; c < in.getNumColumns() + off; c++){
-							vals[c] = sop.executeScalar(vals[c]);
-							nnz += vals[c] == 0 ? 0 : 1;
-						}
-					}
-					return nnz;
-				}));
+				tasks.add(pool.submit(()->
+					fusedDecompressAndScalar(groups, in.getNumColumns(), start,end, db, sop);
+				));
 			}
 			long nnz = 0;
 			for(Future<Long> t : tasks){
@@ -154,6 +143,34 @@ public final class CLALibScalar {
 		
 			// MatrixBlock m1d = m1.decompress(sop.getNumThreads());
 			// return m1d.scalarOperations(sop, result);
+	}
+
+	private static long fusedDecompressAndScalar(final List<AColGroup> groups, int nCol, int start, int end,
+		DenseBlock db, ScalarOperator sop) {
+		long nnz = 0;
+		for(int b = start; b < end; b += 32) {
+			int bs = b;
+			int be = Math.min(b + 32, end);
+			nnz += fusedDecompressAndScalarBlock(groups, nCol, bs, be, db, sop);
+		}
+		return nnz;
+	}
+
+	private static long fusedDecompressAndScalarBlock(final List<AColGroup> groups, int nCol, int bs, int be,
+		DenseBlock db, ScalarOperator sop) {
+		long nnz = 0;
+		for(AColGroup g : groups) {
+			g.decompressToDenseBlock(db, bs, be);
+		}
+		for(int r = bs; r < be; r++) {
+			double[] vals = db.values(r);
+			int off = db.pos(r);
+			for(int c = off; c < nCol + off; c++) {
+				vals[c] = sop.executeScalar(vals[c]);
+				nnz += vals[c] == 0 ? 0 : 1;
+			}
+		}
+		return nnz;
 	}
 
 	private static CompressedMatrixBlock setupRet(CompressedMatrixBlock m1, MatrixValue result) {
@@ -240,7 +257,7 @@ public final class CLALibScalar {
 		catch(InterruptedException | ExecutionException e) {
 			throw new DMLRuntimeException(e);
 		}
-		finally{
+		finally {
 			pool.shutdown();
 		}
 	}
