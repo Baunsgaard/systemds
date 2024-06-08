@@ -2054,24 +2054,22 @@ public class MatrixBlockDictionary extends ADictionary {
 			final int offOutT = i * az + bj;
 			int offOut = offOutT;
 			final int end = (bje - bj) % vLen;
-			for(int j = bj; j < bje; j += vLen, offOut += vLen) {
+			for(int j = bj + sOffT; j < end  + sOffT; j += vLen, offOut += vLen) {
 				DoubleVector res = DoubleVector.fromArray(SPECIES, ret, offOut);
 				for(int k = bk; k < bke; k++) {
 					final int idb = (k + ls) * cut;
 					final double v = a[offI + k];
 					vVec = vVec.broadcast(v);
-					final int sOff = sOffT + idb;
-					DoubleVector bVec = DoubleVector.fromArray(SPECIES, b, sOff + j);
+					DoubleVector bVec = DoubleVector.fromArray(SPECIES, b, idb + j);
 					res = vVec.fma(bVec, res);
 				}
 				res.intoArray(ret, offOut);
 			}
-			for(int j = end; j < bje; j++, offOut++) {
+			for(int j = end + sOffT; j < bje + sOffT; j++, offOut++) {
 				for(int k = bk; k < bke; k++) {
 					final int idb = (k + ls) * cut;
 					final double v = a[offI + k];
-					final int sOff = sOffT + idb;
-					ret[offOut] += v * b[sOff + j];
+					ret[offOut] += v * b[idb + j];
 				}
 			}
 		}
