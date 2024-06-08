@@ -2038,7 +2038,40 @@ public class MatrixBlockDictionary extends ADictionary {
 					final int bje = Math.min(az, bj + blkzJ);
 					final int sOffT = rs + bj;
 					final int eOffT = rs + bje;
-					preaggValuesFromDenseDictBlockedIKJ(values, b, ret, bi, bk, bj, bie, bke, cz, az, ls, cut, sOffT, eOffT);
+					// preaggValuesFromDenseDictBlockedIKJ(values, b, ret, bi, bk, bj, bie, bke, cz, az, ls, cut, sOffT, eOffT);
+					preaggValuesFromDenseDictBlockedIJK(values, b, ret, bi, bk, bj, bie, bke, bje, cz, az, ls, cut, sOffT, eOffT);
+				}
+			}
+		}
+	}
+
+	private static void preaggValuesFromDenseDictBlockedIJK(double[] a, double[] b, double[] ret, int bi, int bk, int bj,
+		int bie, int bke, int bje, int cz, int az, int ls, int cut, int sOffT, int eOffT) {
+		final int vLen = SPECIES.length();
+		DoubleVector vVec = DoubleVector.zero(SPECIES);
+		for(int i = bi; i < bie; i++) {
+			final int offI = i * cz;
+			final int offOutT = i * az + bj;
+			int offOut = offOutT;
+			final int end = (bje - bj) % vLen;
+			for(int j = bj; j < bje; j += vLen, offOut += vLen) {
+				DoubleVector res = DoubleVector.fromArray(SPECIES, ret, offOut);
+				for(int k = bk; k < bke; k++) {
+					final int idb = (k + ls) * cut;
+					final double v = a[offI + k];
+					vVec = vVec.broadcast(v);
+					final int sOff = sOffT + idb;
+					DoubleVector bVec = DoubleVector.fromArray(SPECIES, b, sOff + j);
+					res = vVec.fma(bVec, res);
+				}
+				res.intoArray(ret, offOut);
+			}
+			for(int j = end; j < bje; j++, offOut++) {
+				for(int k = bk; k < bke; k++) {
+					final int idb = (k + ls) * cut;
+					final double v = a[offI + k];
+					final int sOff = sOffT + idb;
+					ret[offOut] += v * b[sOff + j];
 				}
 			}
 		}
@@ -2047,7 +2080,7 @@ public class MatrixBlockDictionary extends ADictionary {
 	private static void preaggValuesFromDenseDictBlockedIKJ(double[] a, double[] b, double[] ret, int bi, int bk, int bj,
 		int bie, int bke, int cz, int az, int ls, int cut, int sOffT, int eOffT) {
 		final int vLen = SPECIES.length();
-		DoubleVector vVec = DoubleVector.zero(SPECIES);
+		final DoubleVector vVec = DoubleVector.zero(SPECIES);
 		for(int i = bi; i < bie; i++) {
 			final int offI = i * cz;
 			final int offOutT = i * az + bj;
@@ -2072,11 +2105,6 @@ public class MatrixBlockDictionary extends ADictionary {
 			DoubleVector bVec = DoubleVector.fromArray(SPECIES, b, j);
 			res = vVec.fma(bVec, res);
 			res.intoArray(ret, offOut);
-			// ret[offOut] += v * b[j];
-			// ret[offOut + 1] += v * b[j + 1];
-			// ret[offOut + 2] += v * b[j + 2];
-			// ret[offOut + 3] += v * b[j + 3];
-
 		}
 		for(int j = end; j < eOff; j++, offOut++) {
 			ret[offOut] += v * b[j];
