@@ -113,7 +113,7 @@ public final class CLALibScalar {
 		ExecutorService pool = CommonThreadPool.get(k);
 		try {
 			final int nRow  = in.getNumRows();
-			final int nCol = in.getNumColumns()
+			final int nCol = in.getNumColumns();
 			final MatrixBlock out = new MatrixBlock(nRow, nCol, false);
 			final List<AColGroup> groups = in.getColGroups();
 			out.allocateDenseBlock();
