@@ -113,7 +113,7 @@ public final class CLALibRightMultBy {
 			// MatrixBlock m1uc = m1.decompress(k);
 			final List<Future<Long>> tasks = new ArrayList<>();
 			final List<AColGroup> groups = m1.getColGroups();
-			final int blkI = Math.max((rl / k), 16);
+			final int blkI = Math.max((int) Math.ceil((double) rl / k), 16);
 			final int blkJ = blkI > 16 ? cr : Math.max((cr / k), 512); // make it a multiplicative of 8.
 			for(int i = 0; i < rl; i += blkI) {
 				final int startI = i;
