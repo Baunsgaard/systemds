@@ -394,11 +394,13 @@ public abstract class AColGroup implements Serializable {
 	 * 
 	 * @param right Right side matrix to multiply with.
 	 * @param ret   The return matrix to add results to
-	 * @param rl    The row of this columngroup to multiply from
-	 * @param ru    The row of this columngroup to multiply to (not inclusive)
-	 * @param nRows The number of rows in this columngroup
+	 * @param rl    The row of this column group to multiply from
+	 * @param ru    The row of this column group to multiply to (not inclusive)
+	 * @param crl   The right hand side column lower
+	 * @param cru   The right hand side column upper
+	 * @param nRows The number of rows in this column group
 	 */
-	public void rightDecompressingMult(MatrixBlock right, MatrixBlock ret, int rl, int ru, int nRows){
+	public void rightDecompressingMult(MatrixBlock right, MatrixBlock ret, int rl, int ru, int nRows, int crl, int cru){
 		throw new NotImplementedException();
 	}
 

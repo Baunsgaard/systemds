@@ -599,7 +599,8 @@ public class ColGroupDDC extends APreAgg implements IMapToDataGroup {
 			throw new NotImplementedException();
 	}
 
-	public void rightDecompressingMult(MatrixBlock right, MatrixBlock ret, int rl, int ru, int nRows) {
+	@Override
+	public void rightDecompressingMult(MatrixBlock right, MatrixBlock ret, int rl, int ru, int nRows, int crl, int cru) {
 		final double[] a = _dict.getValues();
 		final double[] b = right.getDenseBlockValues();
 		final double[] c = ret.getDenseBlockValues();
@@ -615,36 +616,34 @@ public class ColGroupDDC extends APreAgg implements IMapToDataGroup {
 			final int bie = Math.min(ru, bi + blkzI);
 			for(int bk = 0; bk < kd; bk += blkzK) {
 				final int bke = Math.min(kd, bk + blkzK);
-				// for(int bj = 0; bj < az; bj += blkzJ) {
-					// final int bje = Math.min(az, bj + blkzJ);
-					for(int i = bi; i < bie; i++) {
-						int offi = _data.getIndex(i) * kd;
-						for(int k = bk; k < bke; k++) {
-							final double aa = a[offi + k];
-							final int k_right = _colIndexes.get(k);
-							vectMM(aa, b, c, jd, i, k_right, vLen, vVec);
-						}
+				for(int i = bi; i < bie; i++) {
+					int offi = _data.getIndex(i) * kd;
+					for(int k = bk; k < bke; k++) {
+						final double aa = a[offi + k];
+						final int k_right = _colIndexes.get(k);
+						vectMM(aa, b, c, jd, crl, cru, i, k_right, vLen, vVec);
 					}
-				// }
+				}
 			}
 		}
 	}
 
-	final void vectMM(double aa, double[] b, double[] c, int jd, int i, int k, int vLen, DoubleVector vVec) {
+	final void vectMM(double aa, double[] b, double[] c, int jd, int crl, int cru, int i, int k, int vLen, DoubleVector vVec) {
 
 		vVec = vVec.broadcast(aa);
-		final int end = jd - (jd % vLen);
+		final int lenJ = cru-crl;
+		final int end = cru - (lenJ % vLen);
 		int offOut = i * jd;
 
-		final int offj = k * jd;
-		for(int j = offj; j < end + offj; j += vLen, offOut += vLen) {
+		final int offj = k * jd + crl;
+		for(int j = offj ; j < end + offj; j += vLen, offOut += vLen) {
 			DoubleVector res = DoubleVector.fromArray(SPECIES, c, offOut);
 			DoubleVector bVec = DoubleVector.fromArray(SPECIES, b, j);
 			res = vVec.fma(bVec, res);
 			res.intoArray(c, offOut);
 
 		}
-		for(int j = end + offj; j < jd + offj; j++, offOut++) {
+		for(int j = end + offj; j < cru + offj; j++, offOut++) {
 			double bb = b[j];
 			c[offOut] += bb * aa;
 		}
