@@ -119,8 +119,8 @@ public final class CLALibRightMultBy {
 				final int startI = i;
 				final int endI = Math.min(i + blkI, rl);
 				for(int j = 0; j < cr; j += blkJ){
-					final int startJ = i;
-					final int endJ = Math.min(i + blkJ, cr);
+					final int startJ = j;
+					final int endJ = Math.min(j + blkJ, cr);
 					tasks.add(pool.submit(() -> {
 						for(AColGroup g : groups)
 							g.rightDecompressingMult(m2, ret, startI, endI, rl, startJ, endJ);
