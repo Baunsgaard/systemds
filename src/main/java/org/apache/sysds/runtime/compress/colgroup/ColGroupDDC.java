@@ -635,15 +635,15 @@ public class ColGroupDDC extends APreAgg implements IMapToDataGroup {
 		final int end = cru - (lenJ % vLen);
 		int offOut = i * jd + crl;
 
-		final int offj = k * jd + crl;
-		for(int j = offj ; j < end + offj; j += vLen, offOut += vLen) {
+		final int offj = k * jd;
+		for(int j = offj + crl ; j < end + offj; j += vLen, offOut += vLen) {
 			DoubleVector res = DoubleVector.fromArray(SPECIES, c, offOut);
 			DoubleVector bVec = DoubleVector.fromArray(SPECIES, b, j);
 			res = vVec.fma(bVec, res);
 			res.intoArray(c, offOut);
 
 		}
-		for(int j = end + offj; j < cru + k * jd; j++, offOut++) {
+		for(int j = end + offj; j < cru + offj; j++, offOut++) {
 			double bb = b[j];
 			c[offOut] += bb * aa;
 		}
