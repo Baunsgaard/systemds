@@ -633,7 +633,7 @@ public class ColGroupDDC extends APreAgg implements IMapToDataGroup {
 		vVec = vVec.broadcast(aa);
 		final int lenJ = cru-crl;
 		final int end = cru - (lenJ % vLen);
-		int offOut = i * jd;
+		int offOut = i * jd + crl;
 
 		final int offj = k * jd + crl;
 		for(int j = offj ; j < end + offj; j += vLen, offOut += vLen) {
@@ -643,7 +643,7 @@ public class ColGroupDDC extends APreAgg implements IMapToDataGroup {
 			res.intoArray(c, offOut);
 
 		}
-		for(int j = end + offj; j < cru + offj; j++, offOut++) {
+		for(int j = end + offj; j < cru + k * jd; j++, offOut++) {
 			double bb = b[j];
 			c[offOut] += bb * aa;
 		}
