@@ -41,6 +41,7 @@ import org.apache.sysds.runtime.DMLRuntimeException;
 import org.apache.sysds.runtime.compress.CompressedMatrixBlock;
 import org.apache.sysds.runtime.compress.DMLCompressionException;
 import org.apache.sysds.runtime.controlprogram.caching.MatrixObject.UpdateType;
+import org.apache.sysds.runtime.controlprogram.parfor.stat.InfrastructureAnalyzer;
 import org.apache.sysds.runtime.data.DenseBlock;
 import org.apache.sysds.runtime.data.DenseBlockFactory;
 import org.apache.sysds.runtime.data.SparseBlock;
@@ -2479,10 +2480,38 @@ public class LibMatrixReorg {
 		final SparseBlock a = in.sparseBlock;
 		final SparseBlock c = out.sparseBlock;
 		final int n = cols / clen;
-
-		for(int bi = 0, ci = 0; bi < rlen; bi += n, ci++) {
-			reshapeSparseToMCSR_Nto1_row(a,c, clen, bi, n, ci);
+		// safe now since we fixed the parfor threading.
+		final int k = InfrastructureAnalyzer.getLocalParallelism();
+		if(k > 1) {
+			final ExecutorService pool = CommonThreadPool.get(k);
+			try {
+				final int blkz = Math.max((int) Math.ceil((double) rows / k), 1024);
+				ArrayList<Future<?>> tasks = new ArrayList<>();
+				for(int i = 0; i < rows; i += blkz) {
+					final int start = i;
+					final int end = Math.min(i + blkz, rows);
+					tasks.add(pool.submit(() -> {
+						for(int bi = start * n, ci = start; ci < end; bi += n, ci++) {
+							reshapeSparseToMCSR_Nto1_row(a, c, clen, bi, n, ci);
+						}
+					}));
+				}
+				for(Future<?> f : tasks)
+					f.get();
+			}
+			catch(Exception e) {
+				throw new DMLRuntimeException(e);
+			}
+			finally {
+				pool.shutdown();
+			}
 		}
+		else {
+			for(int bi = 0, ci = 0; bi < rlen; bi += n, ci++) {
+				reshapeSparseToMCSR_Nto1_row(a, c, clen, bi, n, ci);
+			}
+		}
+
 		out.setNonZeros(in.nonZeros);
 	}
 
