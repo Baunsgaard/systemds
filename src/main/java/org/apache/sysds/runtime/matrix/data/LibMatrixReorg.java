@@ -2479,7 +2479,7 @@ public class LibMatrixReorg {
 		final SparseBlock a = in.sparseBlock;
 		final SparseBlock c = out.sparseBlock;
 		final int n = cols / clen;
-		
+
 		for(int bi = 0, ci = 0; bi < rlen; bi += n, ci++) {
 			// allocate output row once (w/o re-allocations)
 			c.allocate(ci, (int) a.size(bi, bi + n));
@@ -2501,6 +2501,7 @@ public class LibMatrixReorg {
 				}
 			}
 		}
+		out.setNonZeros(in.nonZeros);
 	}
 
 	private static void reshapeSparseToCSR(MatrixBlock in, MatrixBlock out, int rows, int cols) {
