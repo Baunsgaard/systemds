@@ -2482,10 +2482,10 @@ public class LibMatrixReorg {
 
 		for(int bi = 0, ci = 0; bi < rlen; bi += n, ci++) {
 			// allocate output row once (w/o re-allocations)
-			c.allocate(ci, (int) a.size(bi, bi + n));
-
-			final int[] cix = c.indexes(ci);
-			final double[] cvals = c.values(ci);
+			final int s = (int) a.size(bi, bi + n);
+			final int[] cix = new int[s];
+			final double[] cvals =  new double[s];
+			
 			int pos = 0;
 			// copy N input rows into output row
 			for(int i = bi, colOffset = 0; i < bi + n; i++, colOffset += clen) {
@@ -2496,10 +2496,11 @@ public class LibMatrixReorg {
 				final int[] aix = a.indexes(i);
 				final double[] avals = a.values(i);
 				for(int j = apos; j < apos + alen; j++, pos++){
-					cix[pos ] = colOffset + aix[j];
-					cvals[pos ] = avals[j];
+					cix[pos]  = colOffset + aix[j];
+					cvals[pos] = avals[j];
 				}
 			}
+			c.set(ci, new SparseRowVector(cvals, cix), false);
 		}
 		out.setNonZeros(in.nonZeros);
 	}
