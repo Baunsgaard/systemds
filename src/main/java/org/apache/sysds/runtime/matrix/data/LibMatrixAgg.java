@@ -258,6 +258,7 @@ public class LibMatrixAgg {
 		//fall back to sequential version if necessary
 		if( !satisfiesMultiThreadingConstraints(in, out, uaop, k) ) {
 			LOG.error("Does not satisfy multithreading constraints.");
+			LOG.error(in.getNonZeros());
 			if(uaop.aggOp.increOp.fn instanceof Builtin && (((((Builtin) uaop.aggOp.increOp.fn).getBuiltinCode() == BuiltinCode.MININDEX)
 				|| (((Builtin) uaop.aggOp.increOp.fn).getBuiltinCode() == BuiltinCode.MAXINDEX)) && uaop.aggOp.correction.getNumRemovedRowsColumns()==0))
 					out.clen = 2;
