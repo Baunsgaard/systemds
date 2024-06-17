@@ -2481,28 +2481,32 @@ public class LibMatrixReorg {
 		final int n = cols / clen;
 
 		for(int bi = 0, ci = 0; bi < rlen; bi += n, ci++) {
-			// allocate output row once (w/o re-allocations)
-			final int s = (int) a.size(bi, bi + n);
-			final int[] cix = new int[s];
-			final double[] cvals =  new double[s];
-			
-			int pos = 0;
-			// copy N input rows into output row
-			for(int i = bi, colOffset = 0; i < bi + n; i++, colOffset += clen) {
-				if(a.isEmpty(i))
-					continue;
-				final int apos = a.pos(i);
-				final int alen = a.size(i);
-				final int[] aix = a.indexes(i);
-				final double[] avals = a.values(i);
-				for(int j = apos; j < apos + alen; j++, pos++){
-					cix[pos]  = colOffset + aix[j];
-					cvals[pos] = avals[j];
-				}
-			}
-			c.set(ci, new SparseRowVector(cvals, cix), false);
+			reshapeSparseToMCSR_Nto1_row(a,c, clen, bi, n, ci);
 		}
 		out.setNonZeros(in.nonZeros);
+	}
+
+	private static void reshapeSparseToMCSR_Nto1_row(SparseBlock a, SparseBlock c, int clen, int bi, int n, int ci){
+		// allocate output row once (w/o re-allocations)
+		final int s = (int) a.size(bi, bi + n);
+		final int[] cix = new int[s];
+		final double[] cvals =  new double[s];
+		
+		int pos = 0;
+		// copy N input rows into output row
+		for(int i = bi, colOffset = 0; i < bi + n; i++, colOffset += clen) {
+			if(a.isEmpty(i))
+				continue;
+			final int apos = a.pos(i);
+			final int alen = a.size(i);
+			final int[] aix = a.indexes(i);
+			final double[] avals = a.values(i);
+			for(int j = apos; j < apos + alen; j++, pos++){
+				cix[pos]  = colOffset + aix[j];
+				cvals[pos] = avals[j];
+			}
+		}
+		c.set(ci, new SparseRowVector(cvals, cix), false);
 	}
 
 	private static void reshapeSparseToCSR(MatrixBlock in, MatrixBlock out, int rows, int cols) {
