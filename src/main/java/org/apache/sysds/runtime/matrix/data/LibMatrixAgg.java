@@ -98,8 +98,8 @@ public class LibMatrixAgg {
 
 	//internal configuration parameters
 	private static final boolean NAN_AWARENESS = false;
-	private static final long PAR_NUMCELL_THRESHOLD1 = 1024*1024; //Min 1M elements
-	private static final long PAR_NUMCELL_THRESHOLD2 = 1024*16;   //Min 16K elements
+	private static final long PAR_NUMCELL_THRESHOLD1 = 1024*256; //Min 256K elements
+	private static final long PAR_NUMCELL_THRESHOLD2 = 1024*4;   //Min 4K elements
 	private static final long PAR_INTERMEDIATE_SIZE_THRESHOLD = 2*1024*1024; //Max 2MB
 	
 	////////////////////////////////
@@ -257,6 +257,7 @@ public class LibMatrixAgg {
 	public static void aggregateUnaryMatrix(MatrixBlock in, MatrixBlock out, AggregateUnaryOperator uaop, int k) {
 		//fall back to sequential version if necessary
 		if( !satisfiesMultiThreadingConstraints(in, out, uaop, k) ) {
+			LOG.error("Does not satisfy multithreading constraints.");
 			if(uaop.aggOp.increOp.fn instanceof Builtin && (((((Builtin) uaop.aggOp.increOp.fn).getBuiltinCode() == BuiltinCode.MININDEX)
 				|| (((Builtin) uaop.aggOp.increOp.fn).getBuiltinCode() == BuiltinCode.MAXINDEX)) && uaop.aggOp.correction.getNumRemovedRowsColumns()==0))
 					out.clen = 2;
