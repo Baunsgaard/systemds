@@ -2287,7 +2287,7 @@ public class LibMatrixReorg {
 		//reshape empty block
 		if( in.denseBlock == null )
 			return;
-		
+
 		//shallow dense by-row reshape (w/o result allocation)
 		if( SHALLOW_COPY_REORG && rowwise && in.denseBlock.numBlocks()==1 ) {
 			//since the physical representation of dense matrices is always the same,
@@ -2386,46 +2386,8 @@ public class LibMatrixReorg {
 			else if( cols%clen==0 //SPECIAL CSR N:1 MATRIX->MATRIX
 				&& SHALLOW_COPY_REORG && SPARSE_OUTPUTS_IN_CSR
 				&& in.nonZeros < Integer.MAX_VALUE ) { //int nnz
-				int n = cols/clen, pos = 0;
-				int[] rptr = new int[rows+1];
-				int[] indexes = new int[(int)a.size()];
-				double[] values = null;
-				rptr[0] = 0;
-				
-				if(a instanceof SparseBlockCSR) {
-					int[] aix = ((SparseBlockCSR)a).indexes();
-					for(int bi=0, ci=0; bi<rlen; bi+=n, ci++) {
-						for( int i=bi, cix=0; i<bi+n; i++, cix+=clen ) {
-							if(a.isEmpty(i)) continue;
-							int apos = a.pos(i);
-							int alen = a.size(i);
-							for( int j=apos; j<apos+alen; j++ )
-								indexes[pos++] = cix+aix[j];
-						}
-						rptr[ci+1] = pos;
-					}
-					//shallow copy of CSR values
-					values = ((SparseBlockCSR)a).values();
+					reshapeSparseToCSR(in, out, rows, cols);
 				}
-				else {
-					values = new double[indexes.length];
-					for(int bi=0, ci=0; bi<rlen; bi+=n, ci++) { //output rows
-						for( int i=bi, cix=0; i<bi+n; i++, cix+=clen ) { // N input rows
-							if(a.isEmpty(i)) continue;
-							int apos = a.pos(i);
-							int alen = a.size(i);
-							int[] aix = a.indexes(i);
-							System.arraycopy(a.values(i), apos, values, pos, alen);
-							for( int j=apos; j<apos+alen; j++ )
-								indexes[pos++] = cix+aix[j];
-						}
-						rptr[ci+1] = pos;
-					}
-				}
-				
-				//create CSR block from constructed or shallow-copy arrays
-				out.sparseBlock = new SparseBlockCSR(rptr, indexes, values, pos);
-			}
 			else if( cols%clen==0 ) { //SPECIAL N:1 MATRIX->MATRIX
 				int n = cols/clen;
 				for(int bi=0, ci=0; bi<rlen; bi+=n, ci++) {
@@ -2509,6 +2471,76 @@ public class LibMatrixReorg {
 				out.sortSparseRows();
 			}
 		}
+	}
+
+	private static void reshapeSparseToCSR(MatrixBlock in, MatrixBlock out, int rows, int cols) {
+		if(in.isEmptyBlock(false))
+			return;
+		else if(in.sparseBlock instanceof SparseBlockCSR) 
+			reshapeSparseToCSRFromCSR(in, out, rows, cols);
+		else 
+			reshapeSparseToCSRFromMCSR(in, out, rows, cols);
+	}
+
+	private static void reshapeSparseToCSRFromMCSR(MatrixBlock in, MatrixBlock out, int rows, int cols) {
+		final SparseBlock a = in.sparseBlock;
+		final int rlen = in.rlen;
+		final int clen = in.clen;
+
+		final int n = cols / clen;
+		final int[] rptr = new int[rows + 1];
+		final int[] indexes = new int[(int) a.size()];
+		final double[] values = new double[indexes.length];
+		// rptr[0] = 0; // it is known that the rptr initialize with zeros.
+		int pos = 0;
+
+		for(int bi = 0, ci = 0; bi < rlen; bi += n, ci++) { // output rows
+			for(int i = bi, cix = 0; i < bi + n; i++, cix += clen) { // N input rows
+				if(a.isEmpty(i))
+					continue;
+				final int apos = a.pos(i);
+				final int alen = a.size(i);
+				final int[] aix = a.indexes(i);
+				System.arraycopy(a.values(i), apos, values, pos, alen);
+				for(int j = apos; j < apos + alen; j++)
+					indexes[pos++] = cix + aix[j];
+			}
+			rptr[ci + 1] = pos;
+		}
+
+		// create CSR block from constructed or shallow-copy arrays
+		out.sparseBlock = new SparseBlockCSR(rptr, indexes, values, pos);
+	}
+
+
+	private static void reshapeSparseToCSRFromCSR(MatrixBlock in, MatrixBlock out, int rows, int cols) {		
+		final SparseBlock a = in.sparseBlock;
+		int rlen = in.rlen;
+		int clen = in.clen;
+
+		int n = cols / clen, pos = 0;
+		int[] rptr = new int[rows + 1];
+		int[] indexes = new int[(int) a.size()];
+		double[] values = null;
+		rptr[0] = 0;
+
+		int[] aix = ((SparseBlockCSR) a).indexes();
+		for(int bi = 0, ci = 0; bi < rlen; bi += n, ci++) {
+			for(int i = bi, cix = 0; i < bi + n; i++, cix += clen) {
+				if(a.isEmpty(i))
+					continue;
+				int apos = a.pos(i);
+				int alen = a.size(i);
+				for(int j = apos; j < apos + alen; j++)
+					indexes[pos++] = cix + aix[j];
+			}
+			rptr[ci + 1] = pos;
+		}
+		// shallow copy of CSR values
+		values = ((SparseBlockCSR) a).values();
+
+		// create CSR block from constructed or shallow-copy arrays
+		out.sparseBlock = new SparseBlockCSR(rptr, indexes, values, pos);
 	}
 
 	private static void reshapeDenseToSparse( MatrixBlock in, MatrixBlock out, int rows, int cols, boolean rowwise )
