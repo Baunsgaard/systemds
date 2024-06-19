@@ -65,7 +65,7 @@ public class CLALibTable {
 		final int nNulls = containsNull ? correctNulls(map, nColOut) : 0;
 		LOG.error("table columns out:" + nColOut);
 		LOG.error("table input max: " + A.max(k));
-		LOG.error("Input: " + A.slice(0,0));
+		LOG.error("Input: " + A.slice(0,1000));
 		if(nColOut == 0) // edge case of empty zero dimension block.
 			return new MatrixBlock(seqHeight, 0, 0.0);
 		return createCompressedReturn(map, nColOut, seqHeight, nNulls, containsNull, k);
