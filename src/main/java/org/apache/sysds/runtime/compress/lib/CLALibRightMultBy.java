@@ -99,9 +99,6 @@ public final class CLALibRightMultBy {
 	}
 
 	private static MatrixBlock decompressingMatrixMult(CompressedMatrixBlock m1, MatrixBlock m2, int k) {
-
-		LOG.error("ncol in compressed matrix right mm  :  " + m1.getNumColumns());
-
 		ExecutorService pool = CommonThreadPool.get(k);
 		try {
 			final int rl = m1.getNumRows();
