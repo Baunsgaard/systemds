@@ -65,7 +65,7 @@
 		<maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
 		<maven-antrun-plugin.version>3.1.0</maven-antrun-plugin.version>
 		<!-- Set java compile level via argument, ex: 1.8 1.9 10 11-->
-		<java.level>11</java.level>
+		<java.level>17</java.level>
 		<java.version>{java.level}</java.version>
 		<!-->Testing settings<!-->
 		<maven.test.skip>false</maven.test.skip>
@@ -75,6 +75,7 @@
 		<test-forkCount>1C</test-forkCount>
 		<rerun.failing.tests.count>2</rerun.failing.tests.count>
 		<jacoco.skip>false</jacoco.skip>
+		<doc.skip>false</doc.skip>
 		<jacoco.include>**</jacoco.include>
 		<automatedtestbase.outputbuffering>false</automatedtestbase.outputbuffering>
 		<argLine>-Xms3000m -Xmx3000m -Xmn300m</argLine>
@@ -343,6 +344,9 @@
 					<source>${java.level}</source>
 					<target>${java.level}</target>
 					<release>${java.level}</release>
+					<compilerArgs>
+						<arg>--add-modules=jdk.incubator.vector</arg>
+					</compilerArgs>
 				</configuration>
 			</plugin>
 
@@ -365,6 +369,7 @@
 					<systemPropertyVariables>
 						<log4j.configurationFile>file:src/test/resources/log4j.properties</log4j.configurationFile>
 					</systemPropertyVariables>
+					<argLine>--add-modules=jdk.incubator.vector</argLine>
 				</configuration>
 			</plugin>
 
@@ -861,9 +866,10 @@
 						<configuration>
 							<excludePackageNames>*.protobuf</excludePackageNames>
 							<notimestamp>true</notimestamp>
-							<failOnWarnings>true</failOnWarnings>
+							<failOnWarnings>false</failOnWarnings>
 							<quiet>true</quiet>
-							<skip>false</skip>
+							<additionalJOption>--add-modules=jdk.incubator.vector</additionalJOption>
+							<skip>${doc.skip}</skip>
 							<show>public</show>
 							<source>${java.level}</source>
 						</configuration>

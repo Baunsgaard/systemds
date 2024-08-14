@@ -317,7 +317,7 @@ public class MultiReturnParameterizedBuiltinSPInstruction extends ComputationSPI
 			Iterator<Object> iter = arg0._2().iterator();
 			ArrayList<String> ret = new ArrayList<>();
 
-			long rowID = 1;
+			int rowID = 1;
 			StringBuilder sb = new StringBuilder();
 
 			// handle recode maps
@@ -362,7 +362,7 @@ public class MultiReturnParameterizedBuiltinSPInstruction extends ComputationSPI
 			else {
 				throw new DMLRuntimeException("Unsupported metadata output for encoder: \n" + _encoder);
 			}
-			_accMax.add(rowID - 1);
+			_accMax.add(rowID - 1L);
 
 			return ret.iterator();
 		}

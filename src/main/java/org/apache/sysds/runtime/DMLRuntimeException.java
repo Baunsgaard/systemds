@@ -22,21 +22,22 @@ package org.apache.sysds.runtime;
 import org.apache.sysds.api.DMLException;
 
 /**
- * This exception should be thrown to flag runtime errors -- DML equivalent to java.lang.RuntimeException.
+ * This exception should be thrown to flag runtime errors -- DML equivalent to
+ * java.lang.RuntimeException.
  */
-public class DMLRuntimeException extends DMLException 
-{
+public class DMLRuntimeException extends DMLException {
+
 	private static final long serialVersionUID = 1L;
 
 	public DMLRuntimeException(String string) {
 		super(string);
 	}
-	
+
 	public DMLRuntimeException(Exception e) {
 		super(e);
 	}
 
-	public DMLRuntimeException(String string, Exception ex){
-		super(string,ex);
+	public DMLRuntimeException(String string, Exception ex) {
+		super(string, ex);
 	}
 }
