@@ -255,7 +255,6 @@ public final class CLALibRightMultBy {
 			constV = null;
 		}
 
-		// LOG.debug("RMM Filtered : " + t.stop());
 
 		final List<AColGroup> retCg = new ArrayList<>(filteredGroups.size());
 		if(k == 1)
@@ -263,7 +262,6 @@ public final class CLALibRightMultBy {
 		else
 			RMMParallel(filteredGroups, that, retCg, k);
 
-		// LOG.debug("RMM Groups done : " + t.stop());
 
 		if(constV != null) {
 			MatrixBlock constVMB = new MatrixBlock(1, constV.length, constV);
@@ -272,7 +270,6 @@ public final class CLALibRightMultBy {
 			constV = mmTemp.isEmpty() ? null : mmTemp.getDenseBlockValues();
 		}
 
-		// LOG.debug("RMM Const done: " + t.stop());
 
 		final Timing time = new Timing(true);
 
@@ -282,7 +279,6 @@ public final class CLALibRightMultBy {
 		if(DMLScript.STATISTICS)
 			DMLCompressionStatistics.addDecompressTime(time.stop(), k);
 
-		// LOG.debug("RMM Decompress done: " + t.stop());
 		return ret;
 	}
 

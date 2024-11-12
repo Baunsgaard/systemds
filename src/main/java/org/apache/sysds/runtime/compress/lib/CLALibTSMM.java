@@ -86,10 +86,7 @@ public final class CLALibTSMM {
 		addCorrectionLayer(constV, filteredColSum, nRows, retV);
 	}
 
-	public static void addCorrectionLayer(double[] constV, double[] correctedSum, int nRow, double[] ret) {
-		outerProductUpperTriangle(constV, correctedSum, ret);
-		outerProductUpperTriangleWithScaling(correctedSum, constV, nRow, ret);
-	}
+
 
 	private static void tsmmColGroups(List<AColGroup> groups, MatrixBlock ret, int nRows, boolean overlapping, int k) {
 		if(k <= 1)
@@ -137,29 +134,49 @@ public final class CLALibTSMM {
 		}
 	}
 
-	private static void outerProductUpperTriangle(final double[] leftRowSum, final double[] rightColumnSum,
-		final double[] result) {
-		for(int row = 0; row < leftRowSum.length; row++) {
-			final int offOut = rightColumnSum.length * row;
-			final double vLeft = leftRowSum[row];
-			for(int col = row; col < rightColumnSum.length; col++) {
-				result[offOut + col] += vLeft * rightColumnSum[col];
+	public static void addCorrectionLayer(double[] constV, double[] filteredColSum, int nRow, double[] ret) {
+		
+		outerProductCorrection(constV, filteredColSum, nRow, ret);
+		// outerProductUpperTriangle(constV, filteredColSum, ret);
+		// outerProductUpperTriangleWithScaling(filteredColSum, constV, nRow, ret);
+	}
+
+	private static void outerProductCorrection(final double[] constV, final double[] filteredColSum, 
+		int nRow, double[] ret){
+		final int nColRow = constV.length;
+		for(int row = 0; row < nColRow; row++){
+			int offOut = nColRow * row;
+			double v1l = constV[row];
+			double v2l = filteredColSum[row] + constV[row] * nRow;
+			for(int col = row; col < nColRow; col++){
+				ret[offOut + col] += v1l * filteredColSum[col]  + v2l * constV[col];
 			}
 		}
 	}
 
-	private static void outerProductUpperTriangleWithScaling(final double[] leftRowSum, final double[] rightColumnSum,
-		final int scale, final double[] result) {
-		// note this scaling is a bit different since it is encapsulating two scalar multiplications via an addition in
-		// the outer loop.
-		for(int row = 0; row < leftRowSum.length; row++) {
-			final int offOut = rightColumnSum.length * row;
-			final double vLeft = leftRowSum[row] + rightColumnSum[row] * scale;
-			for(int col = row; col < rightColumnSum.length; col++) {
-				result[offOut + col] += vLeft * rightColumnSum[col];
-			}
-		}
-	}
+	// private static void outerProductUpperTriangle(final double[] constV, final double[] filteredColSum,
+	// 	final double[] result) {
+	// 	for(int row = 0; row < constV.length; row++) {
+	// 		final int offOut = filteredColSum.length * row;
+	// 		final double vLeft = constV[row];
+	// 		for(int col = row; col < filteredColSum.length; col++) {
+	// 			result[offOut + col] += vLeft * filteredColSum[col];
+	// 		}
+	// 	}
+	// }
+
+	// private static void outerProductUpperTriangleWithScaling(final double[] filteredColSum, final double[] constV,
+	// 	final int scale, final double[] result) {
+	// 	// note this scaling is a bit different since it is encapsulating two scalar multiplications via an addition in
+	// 	// the outer loop.
+	// 	for(int row = 0; row < filteredColSum.length; row++) {
+	// 		final int offOut = constV.length * row;
+	// 		final double vLeft = filteredColSum[row] + constV[row] * scale;
+	// 		for(int col = row; col < constV.length; col++) {
+	// 			result[offOut + col] += vLeft * constV[col];
+	// 		}
+	// 	}
+	// }
 
 	private static class TSMMTask implements Callable<MatrixBlock> {
 		private final AColGroup _g;
