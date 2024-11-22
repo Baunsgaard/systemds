@@ -408,8 +408,6 @@ if [ $SYSDS_QUIET == 0 ]; then
   print_out "#"
 fi
 
-java --version
-
 # Build the command to run
 if [ $WORKER == 1 ]; then
   print_out "#  starting Federated worker on port $PORT"
