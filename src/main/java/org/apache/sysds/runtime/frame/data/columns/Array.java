@@ -103,6 +103,7 @@ public abstract class Array<T> implements Writable {
 	 * column.
 	 * 
 	 * @param estimate the estimated number of unique.
+	 * @param pool An executor pool to be used for parallel execution
 	 * @return A recode map
 	 */
 	public synchronized final Map<T, Integer> getRecodeMap(int estimate, ExecutorService pool) {

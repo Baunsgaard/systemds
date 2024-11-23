@@ -964,6 +964,7 @@ public abstract class AColGroup implements Serializable {
 	 * @param nRow       The number of rows in this column group in case the underlying column group does not know
 	 * @param nColOrg    The number of overall columns in the host CompressedMatrixBlock
 	 * @param pool       The executor service to submit parallel tasks to
+	 * @throws Exception In case there is an error we throw the exception out instead of handling it
 	 * @return a list of split column groups
 	 */
 	public AColGroup[] splitReshapePushDown(final int multiplier, final int nRow, final int nColOrg,
