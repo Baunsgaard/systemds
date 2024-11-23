@@ -37,8 +37,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.sysds.runtime.DMLRuntimeException;
 import org.apache.sysds.utils.stats.InfrastructureAnalyzer;
 
-import scala.NotImplementedError;
-
 /**
  * This common thread pool provides an abstraction to obtain a shared thread pool.
  * 
@@ -71,6 +69,9 @@ public class CommonThreadPool implements ExecutorService {
 	private static ExecutorService asyncPool = null;
 	/** This common thread pool */
 	private final ExecutorService _pool;
+
+	/** Local variable indicating if there was a thread that was not main, and requested a thread pool */
+	private static boolean incorrectPoolUse = false; 
 
 	/**
 	 * Constructor of the threadPool. This is intended not to be used except for tests. Please use the static
@@ -124,7 +125,10 @@ public class CommonThreadPool implements ExecutorService {
 		}
 		else {
 			// If we are neither a main thread or parfor thread, allocate a new thread pool
-			LOG.warn("An instruction allocated it's own thread pool indicating that some task is not properly reusing the threads.");
+			if(!incorrectPoolUse){
+				LOG.warn("An instruction allocated it's own thread pool indicating that some task is not properly reusing the threads.");
+				incorrectPoolUse = true;
+			}
 			return Executors.newFixedThreadPool(k);
 		}
 
