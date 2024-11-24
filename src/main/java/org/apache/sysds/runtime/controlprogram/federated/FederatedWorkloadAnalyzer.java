@@ -49,6 +49,7 @@ public class FederatedWorkloadAnalyzer {
 	}
 
 	public void incrementWorkload(ExecutionContext ec, long tid, Instruction ins) {
+		LOG.error("Increment Workload  " + tid + " " + ins + "\n" + this);
 		if(ins instanceof ComputationCPInstruction)
 			incrementWorkload(ec, tid, (ComputationCPInstruction) ins);
 		// currently we ignore everything that is not CP instructions
@@ -110,5 +111,17 @@ public class FederatedWorkloadAnalyzer {
 
 	private static boolean validSize(int nRow, int nCol) {
 		return nRow > 90 && nRow >= nCol;
+	}
+
+	@Override 
+	public String toString(){
+		StringBuilder sb = new StringBuilder();
+		sb.append(this.getClass().getSimpleName());
+		sb.append("  Counter: ");
+		sb.append(counter);
+		sb.append("\n");
+		sb.append(m);
+
+		return sb.toString();
 	}
 }
