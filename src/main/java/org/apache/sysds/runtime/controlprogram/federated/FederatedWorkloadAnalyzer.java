@@ -56,8 +56,10 @@ public class FederatedWorkloadAnalyzer {
 	}
 
 	public void compressRun(ExecutionContext ec, long tid) {
-		if(counter % compressRunFrequency == compressRunFrequency - 1)
+		if(counter >= compressRunFrequency ){
+			counter = 0;
 			get(tid).forEach((K, V) -> CompressedMatrixBlockFactory.compressAsync(ec, Long.toString(K), V));
+		}
 	}
 
 	private void incrementWorkload(ExecutionContext ec, long tid, ComputationCPInstruction cpIns) {
