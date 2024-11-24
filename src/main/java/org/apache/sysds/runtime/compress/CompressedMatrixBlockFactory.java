@@ -182,6 +182,7 @@ public class CompressedMatrixBlockFactory {
 						ExecutionContext.createCacheableData(mb);
 						mo.acquireModify(mbc);
 						mo.release();
+						mbc.sum(); // calculate sum to forcefully materialize counts
 					}
 				}
 			}
