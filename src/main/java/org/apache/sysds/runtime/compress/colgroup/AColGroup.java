@@ -402,7 +402,7 @@ public abstract class AColGroup implements Serializable {
 	 * @param nRows The number of rows in this column group
 	 */
 	public void rightDecompressingMult(MatrixBlock right, MatrixBlock ret, int rl, int ru, int nRows, int crl, int cru){
-		throw new NotImplementedException();
+		throw new NotImplementedException("not supporting right Decompressing Multiply on class: " + this.getClass().getSimpleName());
 	}
 
 	/**
