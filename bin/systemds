@@ -413,6 +413,7 @@ if [ $WORKER == 1 ]; then
   print_out "#  starting Federated worker on port $PORT"
   CMD=" \
   java $SYSTEMDS_STANDALONE_OPTS \
+  --add-modules=jdk.incubator.vector \
   $LOG4JPROPFULL \
   -jar $SYSTEMDS_JAR_FILE \
   -w $PORT \
