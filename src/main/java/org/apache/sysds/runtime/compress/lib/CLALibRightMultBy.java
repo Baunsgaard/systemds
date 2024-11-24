@@ -35,6 +35,7 @@ import org.apache.sysds.runtime.DMLRuntimeException;
 import org.apache.sysds.runtime.compress.CompressedMatrixBlock;
 import org.apache.sysds.runtime.compress.colgroup.AColGroup;
 import org.apache.sysds.runtime.compress.colgroup.ColGroupConst;
+import org.apache.sysds.runtime.compress.colgroup.ColGroupUncompressed;
 import org.apache.sysds.runtime.compress.colgroup.indexes.ColIndexFactory;
 import org.apache.sysds.runtime.compress.colgroup.indexes.IColIndex;
 import org.apache.sysds.runtime.matrix.data.LibMatrixMult;
@@ -144,7 +145,7 @@ public final class CLALibRightMultBy {
 
 	private static boolean betterIfDecompressed(CompressedMatrixBlock m) {
 		for(AColGroup g : m.getColGroups()) {
-			if(g.getNumValues() * 2 >= m.getNumRows()) {
+			if(!(g instanceof ColGroupUncompressed) && g.getNumValues() * 2 >= m.getNumRows()) {
 				return true;
 			}
 		}
