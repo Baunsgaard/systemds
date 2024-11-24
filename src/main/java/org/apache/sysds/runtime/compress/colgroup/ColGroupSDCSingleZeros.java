@@ -41,6 +41,7 @@ import org.apache.sysds.runtime.compress.colgroup.offset.AIterator;
 import org.apache.sysds.runtime.compress.colgroup.offset.AOffset;
 import org.apache.sysds.runtime.compress.colgroup.offset.AOffset.OffsetSliceInfo;
 import org.apache.sysds.runtime.compress.colgroup.offset.AOffsetIterator;
+import org.apache.sysds.runtime.compress.colgroup.offset.OffsetEmpty;
 import org.apache.sysds.runtime.compress.colgroup.offset.OffsetFactory;
 import org.apache.sysds.runtime.compress.cost.ComputationCostEstimator;
 import org.apache.sysds.runtime.compress.estim.encoding.EncodingFactory;
@@ -79,7 +80,7 @@ public class ColGroupSDCSingleZeros extends ASDCZero {
 
 	public static AColGroup create(IColIndex colIndices, int numRows, IDictionary dict, AOffset offsets,
 		int[] cachedCounts) {
-		if(dict == null)
+		if(dict == null || offsets instanceof OffsetEmpty)
 			return new ColGroupEmpty(colIndices);
 		else if(offsets.getSize() * 2 > numRows + 2 && !(dict instanceof PlaceHolderDict)) {
 			AOffset rev = offsets.reverse(numRows);
