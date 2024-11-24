@@ -81,12 +81,15 @@ public class FederatedWorkloadAnalyzer {
 			int c2 = (int) d2.getDim(1);
 			if(validSize(r1, c1)) {
 				getOrMakeCounter(mm, Long.parseLong(n1)).incRMM(r1);
+				// safety add overlapping decompress for RMM
+				getOrMakeCounter(mm, Long.parseLong(n1)).incOverlappingDecompressions();
 				counter++;
 			}
 			if(validSize(r2, c2)) {
 				getOrMakeCounter(mm, Long.parseLong(n2)).incLMM(c2);
 				counter++;
 			}
+			
 		}
 	}
 
