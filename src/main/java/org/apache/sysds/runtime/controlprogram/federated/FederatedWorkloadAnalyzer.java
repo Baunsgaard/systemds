@@ -35,7 +35,7 @@ public class FederatedWorkloadAnalyzer {
 	protected static final Log LOG = LogFactory.getLog(FederatedWorkerHandler.class.getName());
 
 	/** Frequency value for how many instructions before we do a pass for compression */
-	private static int compressRunFrequency = 10;
+	private static final int compressRunFrequency = 10;
 
 	/** Instruction maps to interesting variables */
 	private final ConcurrentHashMap<Long, ConcurrentHashMap<Long, InstructionTypeCounter>> m;
