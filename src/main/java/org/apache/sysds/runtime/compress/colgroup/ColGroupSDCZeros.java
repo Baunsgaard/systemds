@@ -936,7 +936,7 @@ public class ColGroupSDCZeros extends ASDCZero implements IMapToDataGroup {
 
 		while(of < last && c < points.length) {
 			if(points[c].o == of) {
-				c = processRow(points, dr, nCol, c, of, _data.getIndex(it.getDataIndex()));
+				c = processRowDense(points, dr, nCol, c, of, _data.getIndex(it.getDataIndex()));
 				of = it.next();
 			}
 			else if(points[c].o < of)
@@ -948,7 +948,7 @@ public class ColGroupSDCZeros extends ASDCZero implements IMapToDataGroup {
 		while(c < points.length && points[c].o < last)
 			c++;
 
-		c = processRow(points, dr, nCol, c, of, _data.getIndex(it.getDataIndex()));
+		c = processRowDense(points, dr, nCol, c, of, _data.getIndex(it.getDataIndex()));
 	}
 
 	private int processRow(P[] points, final SparseBlock sr, final int nCol, int c, int of, final int did) {
