@@ -22,6 +22,7 @@ package org.apache.sysds.runtime.compress.colgroup.dictionary;
 import java.io.Serializable;
 
 import org.apache.sysds.runtime.compress.colgroup.indexes.IColIndex;
+import org.apache.sysds.runtime.data.DenseBlock;
 import org.apache.sysds.runtime.data.SparseBlock;
 import org.apache.sysds.runtime.functionobjects.ValueFunction;
 import org.apache.sysds.runtime.instructions.cp.CM_COV_Object;
@@ -177,6 +178,14 @@ public abstract class ADictionary implements IDictionary, Serializable {
 	public void put(SparseBlock sb, int idx, int rowOut, int nCol, IColIndex columns) {
 		for(int i = 0; i < nCol; i++)
 			sb.append(rowOut, columns.get(i), getValue(idx, i, nCol));
+	}
+
+	@Override
+	public void put(DenseBlock dr, int idx, int rowOut, int nCol, IColIndex columns) {
+		double[] dv = dr.values(rowOut);
+		int off = dr.pos(rowOut);
+		for(int i = 0; i < nCol; i++)
+			dv[off + columns.get(i)] += getValue(idx, i, nCol);
 	}
 
 	@Override

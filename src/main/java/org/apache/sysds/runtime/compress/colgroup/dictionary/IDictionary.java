@@ -25,6 +25,7 @@ import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.sysds.runtime.compress.colgroup.indexes.IColIndex;
+import org.apache.sysds.runtime.data.DenseBlock;
 import org.apache.sysds.runtime.data.SparseBlock;
 import org.apache.sysds.runtime.functionobjects.Builtin;
 import org.apache.sysds.runtime.functionobjects.ValueFunction;
@@ -1006,6 +1007,18 @@ public interface IDictionary {
 	 * @param columns The columns to output into.
 	 */
 	public void put(SparseBlock sb, int idx, int rowOut, int nCol, IColIndex columns);
+
+	/**
+	 * Put the row specified into the sparse block, via append calls.
+	 * 
+	 * @param db      The dense block to put into
+	 * @param idx     The dictionary index to put in.
+	 * @param rowOut  The row in the sparse block to put it into
+	 * @param nCol    The number of columns in the dictionary
+	 * @param columns The columns to output into.
+	 */
+	public void put(DenseBlock db, int idx, int rowOut, int nCol, IColIndex columns);
+
 
 	/**
 	 * Return a new dictionary with the given row appended. If possible reuse as much of the old dictionary as possible.
