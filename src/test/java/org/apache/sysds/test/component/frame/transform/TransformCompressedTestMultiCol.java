@@ -48,6 +48,8 @@ public class TransformCompressedTestMultiCol {
 	public TransformCompressedTestMultiCol(FrameBlock data, int k) {
 		this.data = data;
 		this.k = k;
+
+		// Thread.currentThread().setName(Thread.currentThread().getName() + "_main");
 	}
 
 	@Parameters

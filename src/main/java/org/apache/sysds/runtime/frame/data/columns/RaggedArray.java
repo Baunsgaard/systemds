@@ -307,7 +307,7 @@ public class RaggedArray<T> extends Array<T> {
 		return _a.changeTypeCharacter(retA, l, u);
 	}
 
-	@Override 
+	@Override
 	public Array<?> changeTypeWithNulls(ValueType t) {
 		throw new NotImplementedException("Not Implemented ragged array with nulls");
 	}

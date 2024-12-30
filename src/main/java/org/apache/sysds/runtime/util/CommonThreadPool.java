@@ -19,6 +19,7 @@
 
 package org.apache.sysds.runtime.util;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
@@ -71,7 +72,7 @@ public class CommonThreadPool implements ExecutorService {
 	private final ExecutorService _pool;
 
 	/** Local variable indicating if there was a thread that was not main, and requested a thread pool */
-	private static boolean incorrectPoolUse = false; 
+	private static boolean incorrectPoolUse = false;
 
 	/**
 	 * Constructor of the threadPool. This is intended not to be used except for tests. Please use the static
@@ -103,11 +104,16 @@ public class CommonThreadPool implements ExecutorService {
 	 * @return The executor with specified parallelism
 	 */
 	public synchronized static ExecutorService get(int k) {
+		if(k <= 1) {
+			LOG.warn("Invalid to create thread pool with <= one thread returning single thread executor",
+				new RuntimeException());
+			return new SameThreadExecutorService();
+		}
+
 		final Thread thisThread = Thread.currentThread();
 		final String threadName = thisThread.getName();
 		// Contains main, because we name our test threads TestRunner_main
 		final boolean mainThread = threadName.contains("main");
-
 		if(size == k && mainThread)
 			return shared; // use the default thread pool if main thread and max parallelism.
 		else if(mainThread || threadName.contains("PARFOR")) {
@@ -125,13 +131,17 @@ public class CommonThreadPool implements ExecutorService {
 		}
 		else {
 			// If we are neither a main thread or parfor thread, allocate a new thread pool
-			if(!incorrectPoolUse){
-				LOG.warn("An instruction allocated it's own thread pool indicating that some task is not properly reusing the threads.");
+			if(!incorrectPoolUse) {
+				LOG.warn(
+					"An instruction allocated it's own thread pool indicating that some task is not properly reusing the threads.");
+
+				if(threadName.contains("test"))
+					LOG.error("Thread from test is not correctly using pools, please modify thread name to contain 'main'");
 				incorrectPoolUse = true;
+				return new CommonThreadPool(new ForkJoinPool(k));
 			}
 			return Executors.newFixedThreadPool(k);
 		}
-
 	}
 
 	/**
@@ -325,5 +335,153 @@ public class CommonThreadPool implements ExecutorService {
 			return true;
 		else
 			return false;
+	}
+
+	public static class SameThreadExecutorService implements ExecutorService {
+
+		private SameThreadExecutorService() {
+			// private constructor.
+		}
+
+		@Override
+		public void execute(Runnable command) {
+			command.run();
+		}
+
+		@Override
+		public void shutdown() {
+			// nothing
+		}
+
+		@Override
+		public List<Runnable> shutdownNow() {
+			return new ArrayList<>();
+		}
+
+		@Override
+		public boolean isShutdown() {
+			return false;
+		}
+
+		@Override
+		public boolean isTerminated() {
+			return false;
+
+		}
+
+		@Override
+		public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+			return true;
+		}
+
+		@Override
+		public <T> Future<T> submit(Callable<T> task) {
+			return new NonFuture<>(task);
+		}
+
+		@Override
+		public <T> Future<T> submit(Runnable task, T result) {
+			return new NonFuture<>(() -> {
+				task.run();
+				return result;
+			});
+		}
+
+		@Override
+		public Future<?> submit(Runnable task) {
+			return new NonFuture<>(() -> {
+				task.run();
+				return null;
+			});
+		}
+
+		@Override
+		public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks) throws InterruptedException {
+			List<Future<T>> ret = new ArrayList<>();
+			for(Callable<T> t : tasks)
+				ret.add(new NonFuture<>(t));
+			return ret;
+		}
+
+		@Override
+		public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit)
+			throws InterruptedException {
+			List<Future<T>> ret = new ArrayList<>();
+			for(Callable<T> t : tasks)
+				ret.add(new NonFuture<>(t));
+			return ret;
+		}
+
+		@Override
+		public <T> T invokeAny(Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
+			Exception e = null;
+			for(Callable<T> t : tasks) {
+				try {
+					T r = t.call();
+					return r;
+				}
+				catch(Exception ee) {
+					e = ee;
+				}
+
+			}
+			throw new ExecutionException("failed", e);
+		}
+
+		@Override
+		public <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit)
+			throws InterruptedException, ExecutionException, TimeoutException {
+			Exception e = null;
+			for(Callable<T> t : tasks) {
+				try {
+					T r = t.call();
+					return r;
+				}
+				catch(Exception ee) {
+					e = ee;
+				}
+
+			}
+			throw new ExecutionException("failed", e);
+		}
+
+		private static class NonFuture<V> implements Future<V> {
+
+			V r;
+
+			protected NonFuture(Callable<V> c) {
+				try {
+					r = c.call();
+				}
+				catch(Exception e) {
+					throw new RuntimeException(e);
+				}
+			}
+
+			@Override
+			public boolean cancel(boolean mayInterruptIfRunning) {
+				return true;
+			}
+
+			@Override
+			public boolean isCancelled() {
+				return false;
+			}
+
+			@Override
+			public boolean isDone() {
+				return true;
+			}
+
+			@Override
+			public V get() throws InterruptedException, ExecutionException {
+				return r;
+			}
+
+			@Override
+			public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+				return r;
+			}
+		}
 	}
 }

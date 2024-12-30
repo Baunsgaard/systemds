@@ -415,4 +415,52 @@ public class ThreadPool {
 		t.join();
 		CommonThreadPool.shutdownAsyncPools(t);
 	}
+
+	@Test
+	public void ParallelismThread_test() throws Exception {
+		Thread t = new Thread(() -> {
+			assertTrue(CommonThreadPool.useParallelismOnThread());
+		}, "fdsfasdftestfdsfa");
+		t.start();
+		t.join();
+		CommonThreadPool.shutdownAsyncPools(t);
+	}
+
+
+	@Test 
+	public void get1ThreadPool() {
+		ExecutorService e = CommonThreadPool.get(1);
+		assertTrue(e instanceof CommonThreadPool.SameThreadExecutorService);
+	}
+
+
+	@Test 
+	public void get1ThreadPoolWorks() throws Exception {
+		ExecutorService e = CommonThreadPool.get(1);
+		Future<?> f = e.submit(() -> {return null;});;
+		assertTrue(f.cancel(true));
+		assertFalse(f.isCancelled());
+		assertTrue(f.isDone());
+		assertNull(f.get());
+		
+		assertTrue(e.shutdownNow().isEmpty());
+		assertFalse(e.isShutdown());
+		assertFalse(e.isTerminated());
+		assertTrue(e.awaitTermination(0, null));
+		
+		Runnable t = new Runnable() {
+			@Override
+			public void run() {
+				return;
+			}
+			
+		};
+		Future<?> r = e.submit(t, new Object());
+		assertTrue(r.isDone());
+		Future<?> r2 = e.submit(t);
+		assertTrue(r2.isDone());
+		
+
+
+	}
 }

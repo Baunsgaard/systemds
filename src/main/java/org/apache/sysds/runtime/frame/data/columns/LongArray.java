@@ -36,7 +36,6 @@ import org.apache.sysds.utils.MemoryEstimates;
 public class LongArray extends Array<Long> {
 	private long[] _data;
 
-
 	private LongArray(int nRow) {
 		this(new long[nRow]);
 	}
@@ -155,7 +154,6 @@ public class LongArray extends Array<Long> {
 		arr.readFields(in);
 		return arr;
 	}
-
 
 	@Override
 	public Array<Long> clone() {
@@ -322,7 +320,7 @@ public class LongArray extends Array<Long> {
 		if(s == null || s.isEmpty())
 			return 0;
 		try {
-			Long v =  Long.parseLong(s);
+			Long v = Long.parseLong(s);
 			return v;
 		}
 		catch(NumberFormatException e) {
