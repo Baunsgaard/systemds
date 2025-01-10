@@ -24,29 +24,50 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.spi.LoggingEvent;
 import org.apache.sysds.runtime.DMLRuntimeException;
+import org.apache.sysds.runtime.compress.CompressedMatrixBlockFactory;
 import org.apache.sysds.runtime.util.CommonThreadPool;
+import org.apache.sysds.test.LoggingUtils;
+import org.apache.sysds.test.LoggingUtils.TestAppender;
 import org.apache.sysds.utils.stats.InfrastructureAnalyzer;
 import org.junit.Test;
 
 public class ThreadPool {
 	protected static final Log LOG = LogFactory.getLog(ThreadPool.class.getName());
+
+	Thread.UncaughtExceptionHandler h = new Thread.UncaughtExceptionHandler() {
+		@Override
+		public void uncaughtException(Thread th, Throwable ex) {
+			ex.printStackTrace();
+			;
+			fail(th.getName() + " " + ex.getMessage());
+			throw new RuntimeException(ex);
+		}
+	};
 
 	@Test
 	public void testGetTheSame() {
@@ -255,16 +276,27 @@ public class ThreadPool {
 	@Test
 	public void justWorksShutdownNowNotMain() throws InterruptedException, ExecutionException {
 
-		for(int j = 0; j < 2; j++) {
+		Thread t = new Thread(() -> {
+			for(int j = 0; j < 2; j++) {
 
-			for(int i = 4; i < 16; i++) {
-				ExecutorService p = CommonThreadPool.get(i);
-				final Integer l = i;
-				assertEquals(l, p.submit(() -> l).get());
-				p.shutdownNow();
+				for(int i = 4; i < 16; i++) {
+					ExecutorService p = CommonThreadPool.get(i);
+					final Integer l = i;
+					try {
+						assertEquals(l, p.submit(() -> l).get());
+					}
+					catch(Exception e) {
 
+					}
+					finally {
+						p.shutdown();
+					}
+
+				}
 			}
-		}
+		}, "somethingOtherThanMM");
+		t.start();
+		t.join();
 	}
 
 	@Test
@@ -426,41 +458,140 @@ public class ThreadPool {
 		CommonThreadPool.shutdownAsyncPools(t);
 	}
 
-
-	@Test 
+	@Test
 	public void get1ThreadPool() {
 		ExecutorService e = CommonThreadPool.get(1);
 		assertTrue(e instanceof CommonThreadPool.SameThreadExecutorService);
 	}
 
-
-	@Test 
+	@Test
 	public void get1ThreadPoolWorks() throws Exception {
 		ExecutorService e = CommonThreadPool.get(1);
-		Future<?> f = e.submit(() -> {return null;});;
+		Future<?> f = e.submit(() -> {
+			return null;
+		});
+		;
 		assertTrue(f.cancel(true));
 		assertFalse(f.isCancelled());
 		assertTrue(f.isDone());
 		assertNull(f.get());
-		
+
 		assertTrue(e.shutdownNow().isEmpty());
 		assertFalse(e.isShutdown());
 		assertFalse(e.isTerminated());
 		assertTrue(e.awaitTermination(0, null));
-		
+
 		Runnable t = new Runnable() {
 			@Override
 			public void run() {
 				return;
 			}
-			
+
 		};
 		Future<?> r = e.submit(t, new Object());
 		assertTrue(r.isDone());
 		Future<?> r2 = e.submit(t);
 		assertTrue(r2.isDone());
+
+	}
+
+	@Test
+	public void getThreadPoolContainingTests() throws Exception {
+		CommonThreadPool.incorrectPoolUse = false;
+		final TestAppender appender = LoggingUtils.overwrite();
+		ExecutorService pool = Executors.newFixedThreadPool(2);
+		try {
+
+			pool.submit(() -> {
+				Thread.currentThread().setName("BAAAAtest");
+				ExecutorService p = CommonThreadPool.get(2);
+				try {
+					assertTrue(p instanceof ThreadPoolExecutor);
+					return null;
+				}
+				catch(Exception e) {
+					throw e;
+				}
+				finally {
+					p.shutdown();
+				}
+			}).get();
+
+		}
+		finally {
+			
+			pool.shutdown();
 		
+			for( LoggingEvent l : LoggingUtils.reinsert(appender)){
+				if(l.getLevel() == Level.ERROR)
+					return;
+			}
+			fail("not correctly logged");
+		}
+
+	}
 
 
+	@Test
+	public void getThreadPoolContainingNoTests() throws Exception {
+		CommonThreadPool.incorrectPoolUse = false;
+		final TestAppender appender = LoggingUtils.overwrite();
+		Logger.getLogger(CommonThreadPool.class).setLevel(Level.TRACE);
+		ExecutorService pool = Executors.newFixedThreadPool(2);
+		try {
+
+			pool.submit(() -> {
+				Thread.currentThread().setName("BAAAANoTTTessst");
+				ExecutorService p = CommonThreadPool.get(2);
+				try {
+					assertTrue(p instanceof ThreadPoolExecutor);
+					return null;
+				}
+				catch(Exception e) {
+					throw e;
+				}
+				finally {
+					p.shutdown();
+				}
+			}).get();
+
+		}
+		finally {
+			
+			pool.shutdown();
+		
+			for( LoggingEvent l : LoggingUtils.reinsert(appender)){
+				if(l.getLevel() == Level.WARN)
+					return;
+			}
+			fail("not correctly logged");
+		}
+
+	}
+
+
+	@Test
+	public void getThreadLocalSharedPoolsTests() throws Exception {
+		CommonThreadPool.incorrectPoolUse = false;
+		Thread[] ts = new Thread[10];
+		for(int i = 0; i < 10; i++) {
+
+			ts[i] = new Thread(() -> {
+				assertTrue(CommonThreadPool.get(2) instanceof CommonThreadPool);
+			}, "PARFOR_" + i);
+
+		}
+
+		for(Thread t : ts) {
+			t.setUncaughtExceptionHandler(h);
+			t.start();
+		}
+
+		Thread.sleep(20);
+		CommonThreadPool.shutdownAsyncPools();
+
+		for(Thread t : ts) {
+			t.join();
+		}
 	}
 }

@@ -72,7 +72,7 @@ public class CommonThreadPool implements ExecutorService {
 	private final ExecutorService _pool;
 
 	/** Local variable indicating if there was a thread that was not main, and requested a thread pool */
-	private static boolean incorrectPoolUse = false;
+	public static boolean incorrectPoolUse = false;
 
 	/**
 	 * Constructor of the threadPool. This is intended not to be used except for tests. Please use the static
@@ -132,15 +132,18 @@ public class CommonThreadPool implements ExecutorService {
 		else {
 			// If we are neither a main thread or parfor thread, allocate a new thread pool
 			if(!incorrectPoolUse) {
-				LOG.warn(
-					"An instruction allocated it's own thread pool indicating that some task is not properly reusing the threads.");
-
 				if(threadName.contains("test"))
-					LOG.error("Thread from test is not correctly using pools, please modify thread name to contain 'main'");
+					LOG.error("Thread from test is not correctly using pools, please modify thread name to contain 'main'",
+						new RuntimeException());
+				else
+					LOG.warn(
+						"An instruction allocated it's own thread pool indicating that some task is not properly reusing the threads.",
+						new RuntimeException());
 				incorrectPoolUse = true;
-				return new CommonThreadPool(new ForkJoinPool(k));
 			}
+
 			return Executors.newFixedThreadPool(k);
+
 		}
 	}
 
