@@ -466,6 +466,7 @@ public class ThreadPool {
 
 	@Test
 	public void get1ThreadPoolWorks() throws Exception {
+		final TestAppender appender = LoggingUtils.overwrite();
 		ExecutorService e = CommonThreadPool.get(1);
 		Future<?> f = e.submit(() -> {
 			return null;
@@ -474,7 +475,10 @@ public class ThreadPool {
 		assertTrue(f.cancel(true));
 		assertFalse(f.isCancelled());
 		assertTrue(f.isDone());
+		e.shutdown();// does nothing
 		assertNull(f.get());
+
+		e.execute(() -> {}); // nothing ...
 
 		assertTrue(e.shutdownNow().isEmpty());
 		assertFalse(e.isShutdown());
@@ -492,7 +496,7 @@ public class ThreadPool {
 		assertTrue(r.isDone());
 		Future<?> r2 = e.submit(t);
 		assertTrue(r2.isDone());
-
+		LoggingUtils.reinsert(appender);
 	}
 
 	@Test
@@ -560,6 +564,7 @@ public class ThreadPool {
 			
 			pool.shutdown();
 		
+			Logger.getLogger(CommonThreadPool.class).setLevel(Level.ERROR);
 			for( LoggingEvent l : LoggingUtils.reinsert(appender)){
 				if(l.getLevel() == Level.WARN)
 					return;
