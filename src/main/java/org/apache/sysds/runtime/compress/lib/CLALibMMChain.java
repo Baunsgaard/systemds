@@ -37,8 +37,7 @@ import org.apache.sysds.runtime.matrix.operators.BinaryOperator;
 import org.apache.sysds.utils.stats.Timing;
 
 /**
- * Support compressed MM chain operation to fuse the followin
-import org.apache.sysds.utils.stats.Timing;g cases :
+ * Support compressed MM chain operation to fuse the following cases :
  * 
  * <p>
  * XtXv == (t(X) %*% (X %*% v))
@@ -102,7 +101,7 @@ public final class CLALibMMChain {
 
 		// Allow overlapping intermediate if the intermediate is guaranteed not to be overlapping.
 		final boolean allowOverlap = x.getColGroups().size() == 1 && isOverlappingAllowed();
-		
+
 		// Right hand side multiplication
 		MatrixBlock tmp = CLALibRightMultBy.rightMultByMatrix(x, v, null, k, true);
 
@@ -118,7 +117,7 @@ public final class CLALibMMChain {
 
 		double decompressTime = t.stop();
 
-		if(tmp instanceof CompressedMatrixBlock) 
+		if(tmp instanceof CompressedMatrixBlock)
 			// Compressed Compressed Matrix Multiplication
 			CLALibLeftMultBy.leftMultByMatrixTransposed(x, (CompressedMatrixBlock) tmp, out, k);
 		else
