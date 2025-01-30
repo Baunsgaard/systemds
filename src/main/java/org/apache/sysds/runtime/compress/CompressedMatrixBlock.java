@@ -990,6 +990,10 @@ public class CompressedMatrixBlock extends MatrixBlock {
 		return getUncompressed((String) null);
 	}
 
+	public MatrixBlock getUncompressed(int k){
+		return getUncompressed((String) null, k);
+	}
+
 	public MatrixBlock getUncompressed(String operation) {
 		return getUncompressed(operation,
 			ConfigurationManager.isParallelMatrixOperations() ? InfrastructureAnalyzer.getLocalParallelism() : 1);
