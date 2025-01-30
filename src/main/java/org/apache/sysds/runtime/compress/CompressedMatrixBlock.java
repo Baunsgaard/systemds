@@ -1297,7 +1297,7 @@ public class CompressedMatrixBlock extends MatrixBlock {
 
 	@Override 
 	public MatrixBlock transpose(int k) {
-		return getUncompressed().transpose(k);
+		return getUncompressed(k).transpose(k);
 	}
 
 	@Override
