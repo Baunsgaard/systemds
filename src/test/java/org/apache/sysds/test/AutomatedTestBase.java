@@ -1664,6 +1664,7 @@ public abstract class AutomatedTestBase {
 			"--add-opens=java.base/java.lang.ref=ALL-UNNAMED" ,
 			"--add-opens=java.base/java.util.concurrent=ALL-UNNAMED" ,
 			"--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
+			"--add-modules=jdk.incubator.vector",
 			"-cp", classpath,
 				DMLScript.class.getName(), "-w", Integer.toString(port), "-stats"};
 		if(addArgs != null)
