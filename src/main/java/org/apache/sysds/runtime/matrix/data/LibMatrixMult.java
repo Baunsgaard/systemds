@@ -81,7 +81,8 @@ public class LibMatrixMult
 	public static final int L2_CACHESIZE = 256 * 1024; //256KB (common size)
 	public static final int L3_CACHESIZE = 16 * 1024 * 1024; //16MB (common size)
 	private static final Log LOG = LogFactory.getLog(LibMatrixMult.class.getName());
-	static final VectorSpecies<Double> SPECIES = DoubleVector.SPECIES_PREFERRED;
+	private static final VectorSpecies<Double> SPECIES = DoubleVector.SPECIES_PREFERRED;
+	private static final int vLen = SPECIES.length();
 
 	private LibMatrixMult() {
 		//prevent instantiation via private constructor
@@ -3673,14 +3674,13 @@ public class LibMatrixMult
 	{
 		double val = 0;
 
-		final int vLen = SPECIES.length();
 		final int bn = len%vLen;
 				
 		//compute rest
 		for( int i = 0; i < bn; i++ )
 			val += a[ i ] * b[ i ];
 		
-		//unrolled 8-block  (for better instruction-level parallelism)
+		//unrolled vLen-block (for better instruction-level parallelism)
 		for( int i = bn; i < len; i+=vLen ){
 			DoubleVector bVec = DoubleVector.fromArray(SPECIES, b, i);
 			DoubleVector aVec = DoubleVector.fromArray(SPECIES, a, i);
@@ -3695,14 +3695,13 @@ public class LibMatrixMult
 	public static double dotProduct( double[] a, double[] b, int ai, int bi, final int len )
 	{
 		double val = 0;
-		final int vLen = SPECIES.length();
 		final int bn = len%vLen;
 		
 		//compute rest
 		for( int i = 0; i < bn; i++, ai++, bi++ )
 			val += a[ ai ] * b[ bi ];
 		
-		//unrolled 8-block (for better instruction-level parallelism)
+		//unrolled vLen-block (for better instruction-level parallelism)
 		for( int i = bn; i < len; i+=vLen, ai+=vLen, bi+=vLen )
 		{
 			DoubleVector bVec = DoubleVector.fromArray(SPECIES, b, bi);
@@ -3777,15 +3776,14 @@ public class LibMatrixMult
 	//note: public for use by codegen for consistency
 	public static void vectMultiplyAdd( final double aval, double[] b, double[] c, int bi, int ci, final int len )
 	{		
-		final int vLen = SPECIES.length();
 		final int bn = len%vLen;
 		
-		//rest, not aligned to 8-blocks
+		//rest, not aligned to vLen-blocks
 		for( int j = 0; j < bn; j++, bi++, ci++)
 			c[ ci ] += aval * b[ bi ];
 		
 		DoubleVector aVec = DoubleVector.broadcast(SPECIES, aval);
-		//unrolled 8-block  (for better instruction-level parallelism)
+		//unrolled vLen-block  (for better instruction-level parallelism)
 		for( int j = bn; j < len; j+=vLen, bi+=vLen, ci+=vLen) 
 		{
 			DoubleVector bVec = DoubleVector.fromArray(SPECIES, b, bi);
@@ -3797,7 +3795,6 @@ public class LibMatrixMult
 
 	private static void vectMultiplyAdd2( final double aval1, final double aval2, double[] b, double[] c, int bi1, int bi2, int ci, final int len )
 	{
-		final int vLen = SPECIES.length();
 		final int bn = len%vLen;
 		
 		//rest, not aligned to vLen-blocks
@@ -3806,7 +3803,7 @@ public class LibMatrixMult
 		
 		DoubleVector aVec1 = DoubleVector.broadcast(SPECIES, aval1);
 		DoubleVector aVec2 = DoubleVector.broadcast(SPECIES, aval2);
-		//unrolled vLen-block  (for better instruction-level parallelism)
+		//unrolled vLen-block (for better instruction-level parallelism)
 		for( int j = bn; j < len; j+=vLen, bi1+=vLen, bi2+=vLen, ci+=vLen ) 		{
 			DoubleVector bVec1 = DoubleVector.fromArray(SPECIES, b, bi1);
 			DoubleVector bVec2 = DoubleVector.fromArray(SPECIES, b, bi2);
@@ -3819,7 +3816,6 @@ public class LibMatrixMult
 
 	private static void vectMultiplyAdd3( final double aval1, final double aval2, final double aval3, double[] b, double[] c, int bi1, int bi2, int bi3, int ci, final int len )
 	{
-		final int vLen = SPECIES.length();
 		final int bn = len%vLen;
 		//rest, not aligned to vLen-blocks
 		for( int j = 0; j < bn; j++, bi1++, bi2++, bi3++, ci++ )
@@ -3844,7 +3840,6 @@ public class LibMatrixMult
 
 	private static void vectMultiplyAdd4( final double aval1, final double aval2, final double aval3, final double aval4, double[] b, double[] c, int bi1, int bi2, int bi3, int bi4, int ci, final int len )
 	{
-		final int vLen = SPECIES.length();
 		final int bn = len%vLen;
 		//rest, not aligned to vLen-blocks
 		for( int j = 0; j < bn; j++, bi1++, bi2++, bi3++, bi4++, ci++ )
@@ -3927,14 +3922,13 @@ public class LibMatrixMult
 	//note: public for use by codegen for consistency
 	public static void vectMultiplyWrite( final double aval, double[] b, double[] c, int bi, int ci, final int len )
 	{
-		final int vLen = SPECIES.length();
 		final int bn = len%vLen;
 		
 		//rest, not aligned to vLen-blocks
 		for( int j = 0; j < bn; j++, bi++, ci++)
 			c[ ci ] = aval * b[ bi ];
 		
-		//unrolled 8-block  (for better instruction-level parallelism)
+		//unrolled vLen-block (for better instruction-level parallelism)
 		DoubleVector aVec = DoubleVector.broadcast(SPECIES, aval);
 		for( int j = bn; j < len; j+=vLen, bi+=vLen, ci+=vLen) 
 		{
@@ -3978,7 +3972,7 @@ public class LibMatrixMult
 
 	//note: public for use by codegen for consistency
 	public static void vectMultiplyWrite( double[] a, double[] b, double[] c, int ai, int bi, int ci, final int len ){
-		final int vLen = SPECIES.length();
+
 		final int bn = len%vLen;
 		
 		//rest, not aligned to vLen-blocks
@@ -4014,7 +4008,7 @@ public class LibMatrixMult
 	}
 
 	public static void vectMultiply(double[] a, double[] c, int ai, int ci, final int len){
-		final int vLen = SPECIES.length();
+
 		final int bn = len%vLen;
 		
 		//rest, not aligned to vLen-blocks
@@ -4034,7 +4028,6 @@ public class LibMatrixMult
 
 	//note: public for use by codegen for consistency
 	public static void vectAdd( double[] a, double bval, double[] c, int ai, int ci, final int len ) {
-		final int vLen = SPECIES.length();
 		final int bn = len%vLen;
 		//rest, not aligned to vLen-blocks
 		for( int j = 0; j < bn; j++, ai++, ci++)
