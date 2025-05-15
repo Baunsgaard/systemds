@@ -3855,7 +3855,7 @@ public class LibMatrixMult
 		DoubleVector aVec3 = DoubleVector.broadcast(SPECIES, aval3);
 		DoubleVector aVec4 = DoubleVector.broadcast(SPECIES, aval4);
 		//unrolled vLen-block  (for better instruction-level parallelism)
-		for( int j = bn; j < len; j+=8, bi1+=8, bi2+=8, bi3+=8, bi4+=8, ci+=8) 
+		for( int j = bn; j < len; j+=vLen, bi1+=vLen, bi2+=vLen, bi3+=vLen, bi4+=vLen, ci+=vLen) 
 		{
 			DoubleVector bVec1 = DoubleVector.fromArray(SPECIES, b, bi1);
 			DoubleVector bVec2 = DoubleVector.fromArray(SPECIES, b, bi2);
@@ -3930,7 +3930,7 @@ public class LibMatrixMult
 		final int vLen = SPECIES.length();
 		final int bn = len%vLen;
 		
-		//rest, not aligned to 8-blocks
+		//rest, not aligned to vLen-blocks
 		for( int j = 0; j < bn; j++, bi++, ci++)
 			c[ ci ] = aval * b[ bi ];
 		
